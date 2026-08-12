@@ -219,6 +219,7 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
                 content: hostDeliveredPrompt,
                 agent: hostDeliveredAgent,
                 submit: hostFollowupPrompt !== null,
+                forcePaste: true,
                 onTimeout: () => showAutomationPromptNotSentToast(hostDeliveredAgent)
               }).catch(() => {})
             }
