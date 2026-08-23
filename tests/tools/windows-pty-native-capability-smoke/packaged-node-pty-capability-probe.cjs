@@ -3,16 +3,21 @@ const net = require('node:net')
 const path = require('node:path')
 
 const EVIDENCE_PREFIX = 'ORCA_NODE_PTY_CAPABILITY_EVIDENCE='
-const EXPECTED_ROLES = new Set(['target-shell', 'target-grandchild', 'canary-shell'])
+const EXPECTED_ROLES = new Set([
+  'target-shell',
+  'target-launcher-exited',
+  'target-grandchild',
+  'canary-shell'
+])
 
-function fixtureObservation(fixtureToken, role, channel) {
-  return { pid: process.pid, fixtureToken, role, channel }
+function fixtureObservation(fixtureToken, role, channel, extra = {}) {
+  return { pid: process.pid, fixtureToken, role, channel, ...extra }
 }
 
-function connectFixture(channel, fixtureToken, role) {
+function connectFixture(channel, fixtureToken, role, extra = {}) {
   const socket = net.createConnection(channel)
   socket.once('connect', () => {
-    socket.write(`${JSON.stringify(fixtureObservation(fixtureToken, role, channel))}\n`)
+    socket.write(`${JSON.stringify(fixtureObservation(fixtureToken, role, channel, extra))}\n`)
   })
   socket.on('error', (error) => {
     process.stderr.write(`${error.stack || error.message}\n`)
@@ -21,41 +26,56 @@ function connectFixture(channel, fixtureToken, role) {
   return socket
 }
 
-function quoteCmdArgument(value) {
-  if (/[\r\n"]/.test(value)) {
-    throw new Error('PTY native capability fixture paths cannot contain quotes or line breaks')
+function buildDetachedGrandchildLaunch(channel, fixtureToken) {
+  return {
+    program: path.join(process.env.SystemRoot, 'System32', 'wscript.exe'),
+    args: [
+      path.join(__dirname, 'real-orca-detached-launcher.vbs'),
+      process.execPath,
+      __filename,
+      '--detached-member',
+      channel,
+      fixtureToken,
+      'target-grandchild'
+    ]
   }
-  return `"${value}"`
 }
 
 function startDetachedGrandchild(channel, fixtureToken, resourcesDir) {
   const { spawnProcess } = require(
     path.join(resourcesDir, 'app.asar.unpacked', 'out', 'shared', 'child-process', 'run-process.js')
   )
-  const command = [
-    'start "" /b',
-    quoteCmdArgument(process.execPath),
-    quoteCmdArgument(__filename),
-    '--detached-member',
-    quoteCmdArgument(channel),
-    fixtureToken,
-    'target-grandchild'
-  ].join(' ')
+  const launch = buildDetachedGrandchildLaunch(channel, fixtureToken)
   const child = spawnProcess({
-    program: process.env.ComSpec || path.join(process.env.SystemRoot, 'System32', 'cmd.exe'),
-    args: ['/d', '/s', '/c', command],
+    ...launch,
     env: process.env
   })
   for (const stream of [child.stdin, child.stdout, child.stderr]) {
     stream?.on('error', () => {})
   }
   child.stdin?.end()
+  return new Promise((resolve, reject) => {
+    child.once('error', reject)
+    child.once('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`detached launcher exited ${code}`))
+        return
+      }
+      connectFixture(channel, fixtureToken, 'target-launcher-exited', { pid: child.pid })
+      resolve(child.pid)
+    })
+  })
 }
 
-function runPtyShell(channel, fixtureToken, role, resourcesDir) {
-  connectFixture(channel, fixtureToken, `${role}-shell`)
-  if (role === 'target') {
-    startDetachedGrandchild(channel, fixtureToken, resourcesDir)
+async function runPtyShell(channel, fixtureToken, role, resourcesDir) {
+  const socket = connectFixture(channel, fixtureToken, `${role}-shell`)
+  try {
+    if (role === 'target') {
+      await startDetachedGrandchild(channel, fixtureToken, resourcesDir)
+    }
+  } catch (error) {
+    socket.destroy()
+    throw error
   }
 }
 
@@ -64,6 +84,7 @@ function createFixtureServer(channel, fixtureToken) {
   const observations = new Map()
   const sockets = new Map()
   const closures = new Map()
+  const acceptedSockets = new Set()
   let serverClosed = false
 
   function closureFor(role) {
@@ -90,6 +111,8 @@ function createFixtureServer(channel, fixtureToken) {
 
   const server = net.createServer((socket) => {
     let input = ''
+    acceptedSockets.add(socket)
+    socket.once('close', () => acceptedSockets.delete(socket))
     socket.setEncoding('utf8')
     socket.on('data', (chunk) => {
       input += String(chunk)
@@ -132,6 +155,11 @@ function createFixtureServer(channel, fixtureToken) {
     waitForRole,
     waitForClose: (role) => closureFor(role).promise,
     sockets,
+    destroySockets: () => {
+      for (const socket of acceptedSockets) {
+        socket.destroy()
+      }
+    },
     close
   }
 }
@@ -142,6 +170,17 @@ function terminalHandle(pty) {
 
 function exitEvent(pty) {
   return new Promise((resolve) => pty.onExit(resolve))
+}
+
+function waitForBarrier(promise, label, timeoutMs = 30_000) {
+  let timer
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+      timeoutMs
+    )
+  })
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer))
 }
 
 async function exercise(resourcesDir) {
@@ -174,6 +213,7 @@ async function exercise(resourcesDir) {
   }
   const created = []
   const closed = new Set()
+  let completed = false
 
   try {
     const target = nodePty.spawn(
@@ -191,10 +231,11 @@ async function exercise(resourcesDir) {
     created.push(canary)
     const canaryExited = exitEvent(canary)
 
-    const [shell, grandchild, canaryProcess] = await Promise.all([
-      fixtures.waitForRole('target-shell'),
-      fixtures.waitForRole('target-grandchild'),
-      fixtures.waitForRole('canary-shell')
+    const [shell, launcherExited, grandchild, canaryProcess] = await Promise.all([
+      waitForBarrier(fixtures.waitForRole('target-shell'), 'target shell readiness'),
+      waitForBarrier(fixtures.waitForRole('target-launcher-exited'), 'detached launcher exit'),
+      waitForBarrier(fixtures.waitForRole('target-grandchild'), 'target grandchild readiness'),
+      waitForBarrier(fixtures.waitForRole('canary-shell'), 'canary shell readiness')
     ])
     const targetJobProcessIds = native.listJobProcessIds(target._pty, target.pid)
     const targetHandle = terminalHandle(target)
@@ -203,9 +244,12 @@ async function exercise(resourcesDir) {
     }
     closed.add(target)
     await Promise.all([
-      targetExited,
-      fixtures.waitForClose('target-shell'),
-      fixtures.waitForClose('target-grandchild')
+      waitForBarrier(targetExited, 'target PTY exit'),
+      waitForBarrier(fixtures.waitForClose('target-shell'), 'target shell connection close'),
+      waitForBarrier(
+        fixtures.waitForClose('target-grandchild'),
+        'target grandchild connection close'
+      )
     ])
 
     const canaryJobProcessIdsAfterTargetClose = native.listJobProcessIds(canary._pty, canary.pid)
@@ -215,7 +259,10 @@ async function exercise(resourcesDir) {
       throw new Error('exact canary job termination was refused')
     }
     closed.add(canary)
-    await Promise.all([canaryExited, fixtures.waitForClose('canary-shell')])
+    await Promise.all([
+      waitForBarrier(canaryExited, 'canary PTY exit'),
+      waitForBarrier(fixtures.waitForClose('canary-shell'), 'canary shell connection close')
+    ])
 
     const evidence = {
       patchedExports,
@@ -224,6 +271,7 @@ async function exercise(resourcesDir) {
       target: {
         terminalHandle: targetHandle,
         shell,
+        launcherExited,
         grandchild,
         grandchildDetached: true,
         jobProcessIds: targetJobProcessIds
@@ -246,11 +294,15 @@ async function exercise(resourcesDir) {
     }
     await fixtures.close()
     process.stdout.write(`${EVIDENCE_PREFIX}${JSON.stringify(evidence)}\n`)
+    completed = true
   } finally {
     for (const pty of created) {
       if (!closed.has(pty)) {
         native.terminateJob(pty._pty, pty.pid)
       }
+    }
+    if (!completed) {
+      fixtures.destroySockets()
     }
     await fixtures.close()
   }
@@ -259,7 +311,7 @@ async function exercise(resourcesDir) {
 async function main() {
   const [mode, ...args] = process.argv.slice(2)
   if (mode === '--pty-shell') {
-    runPtyShell(args[0], args[1], args[2], args[3])
+    await runPtyShell(args[0], args[1], args[2], args[3])
     return
   }
   if (mode === '--detached-member') {
@@ -273,7 +325,11 @@ async function main() {
   throw new Error(`unknown packaged node-pty capability probe mode: ${mode}`)
 }
 
-main().catch((error) => {
-  process.stderr.write(`${error.stack || error.message}\n`)
-  process.exitCode = 1
-})
+module.exports = { buildDetachedGrandchildLaunch }
+
+if (require.main === module) {
+  main().catch((error) => {
+    process.stderr.write(`${error.stack || error.message}\n`)
+    process.exitCode = 1
+  })
+}

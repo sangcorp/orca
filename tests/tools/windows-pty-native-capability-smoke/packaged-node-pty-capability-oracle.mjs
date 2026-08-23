@@ -29,6 +29,15 @@ export function evaluatePackagedNodePtyCapability(evidence) {
     failures.push('the target shell was not observed on its unique fixture channel')
   }
   if (
+    !isFixtureObservation(target?.launcherExited, {
+      fixtureToken,
+      channel,
+      role: 'target-launcher-exited'
+    })
+  ) {
+    failures.push('the transient detached launcher exit was not observed')
+  }
+  if (
     !isFixtureObservation(target?.grandchild, {
       fixtureToken,
       channel,
@@ -40,15 +49,24 @@ export function evaluatePackagedNodePtyCapability(evidence) {
   if (!isFixtureObservation(canary?.process, { fixtureToken, channel, role: 'canary-shell' })) {
     failures.push('the unrelated canary was not observed on its unique fixture channel')
   }
-  const observedPids = [target?.shell?.pid, target?.grandchild?.pid, canary?.process?.pid]
-  if (observedPids.every((pid) => Number.isInteger(pid)) && new Set(observedPids).size !== 3) {
-    failures.push('target shell, detached grandchild, and canary must be distinct processes')
+  const observedPids = [
+    target?.shell?.pid,
+    target?.launcherExited?.pid,
+    target?.grandchild?.pid,
+    canary?.process?.pid
+  ]
+  if (observedPids.every((pid) => Number.isInteger(pid)) && new Set(observedPids).size !== 4) {
+    failures.push(
+      'target shell, launcher, detached grandchild, and canary must be distinct processes'
+    )
   }
 
   if (!Array.isArray(target?.jobProcessIds) || target.jobProcessIds.length === 0) {
     failures.push('the target job membership must be available and nonempty')
   } else if (!target.jobProcessIds.includes(target?.grandchild?.pid)) {
     failures.push('the target job does not contain the observed detached grandchild PID')
+  } else if (target.jobProcessIds.includes(target?.launcherExited?.pid)) {
+    failures.push('the transient detached launcher is still live in the target job')
   }
   if (target?.grandchildDetached !== true) {
     failures.push('the target descendant was not launched detached from its intermediate parent')

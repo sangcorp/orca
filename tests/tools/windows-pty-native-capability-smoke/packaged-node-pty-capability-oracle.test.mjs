@@ -10,6 +10,7 @@ function observation(pid, role) {
 
 function passingEvidence() {
   const shell = observation(4100, 'target-shell')
+  const launcherExited = observation(4101, 'target-launcher-exited')
   const grandchild = observation(4102, 'target-grandchild')
   const canary = observation(5100, 'canary-shell')
   return {
@@ -19,6 +20,7 @@ function passingEvidence() {
     target: {
       terminalHandle: 'pty-job:7:4100',
       shell,
+      launcherExited,
       grandchild,
       grandchildDetached: true,
       jobProcessIds: [shell.pid, grandchild.pid]
@@ -51,6 +53,7 @@ describe('packaged node-pty native capability oracle', () => {
 
   it.each([
     ['missing patched export', (evidence) => evidence.patchedExports.pop()],
+    ['launcher exit absent', (evidence) => delete evidence.target.launcherExited],
     ['empty job membership', (evidence) => (evidence.target.jobProcessIds = [])],
     [
       'detached grandchild outside membership',
@@ -72,6 +75,10 @@ describe('packaged node-pty native capability oracle', () => {
       (evidence) => (evidence.target.grandchild.channel = '\\\\.\\pipe\\other')
     ],
     ['retried teardown', (evidence) => (evidence.close.attempts = 2)],
+    [
+      'launcher still in target job',
+      (evidence) => evidence.target.jobProcessIds.push(evidence.target.launcherExited.pid)
+    ],
     ['canary outside its job', (evidence) => (evidence.canary.jobProcessIdsAfterTargetClose = [])],
     ['canary teardown absent', (evidence) => (evidence.canary.exactTeardownObserved = false)]
   ])('rejects scope violation: %s', (_name, mutate) => {
