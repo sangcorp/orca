@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { assertPackagedNodePtyCapability } from './packaged-node-pty-capability-oracle.mjs'
 
 const EVIDENCE_PREFIX = 'ORCA_NODE_PTY_CAPABILITY_EVIDENCE='
@@ -10,6 +11,22 @@ function executableArgument(argv) {
     throw new Error('usage: windows-pty-native-capability-smoke --exe=<packaged Orca.exe>')
   }
   return path.resolve(value)
+}
+
+export function checkoutRunProcessPath() {
+  return path.resolve(import.meta.dirname, '../../../out/shared/child-process/run-process.js')
+}
+
+export function packagedProbeInvocation(executable, environment = process.env) {
+  const resolvedExecutable = path.resolve(executable)
+  const resourcesDir = path.join(path.dirname(resolvedExecutable), 'resources')
+  const probe = path.join(import.meta.dirname, 'packaged-node-pty-capability-probe.cjs')
+  return {
+    program: resolvedExecutable,
+    args: [probe, '--exercise', resourcesDir],
+    env: { ...environment, ELECTRON_RUN_AS_NODE: '1' },
+    timeoutMs: 120_000
+  }
 }
 
 function parseEvidence(stdout) {
@@ -25,18 +42,9 @@ async function main() {
     throw new Error('windows-pty-native-capability-smoke requires a physical Windows host')
   }
   const executable = executableArgument(process.argv.slice(2))
-  const resourcesDir = path.join(path.dirname(executable), 'resources')
   const require = createRequire(import.meta.url)
-  const { runProcess } = require(
-    path.join(resourcesDir, 'app.asar.unpacked', 'out', 'shared', 'child-process', 'run-process.js')
-  )
-  const probe = path.join(import.meta.dirname, 'packaged-node-pty-capability-probe.cjs')
-  const result = await runProcess({
-    program: executable,
-    args: [probe, '--exercise', resourcesDir],
-    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
-    timeoutMs: 120_000
-  })
+  const { runProcess } = require(checkoutRunProcessPath())
+  const result = await runProcess(packagedProbeInvocation(executable))
   if (result.code !== 0 || result.timedOut) {
     throw new Error(`packaged native capability probe failed (${result.code}): ${result.stderr}`)
   }
@@ -45,4 +53,6 @@ async function main() {
   process.stdout.write(`[windows-pty-native-capability-smoke] PASS ${executable}\n`)
 }
 
-await main()
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  await main()
+}
