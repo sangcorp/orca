@@ -159,6 +159,8 @@ function createFixtureServer(channel, fixtureToken) {
       for (const socket of acceptedSockets) {
         socket.destroy()
       }
+      server.closeAllConnections?.()
+      server.unref()
     },
     close
   }
@@ -213,6 +215,7 @@ async function exercise(resourcesDir) {
   }
   const created = []
   const closed = new Set()
+  const exitPromises = []
   let completed = false
 
   try {
@@ -223,6 +226,7 @@ async function exercise(resourcesDir) {
     )
     created.push(target)
     const targetExited = exitEvent(target)
+    exitPromises.push(targetExited)
     const canary = nodePty.spawn(
       process.execPath,
       [__filename, '--pty-shell', channel, fixtureToken, 'canary', resourcesDir],
@@ -230,6 +234,7 @@ async function exercise(resourcesDir) {
     )
     created.push(canary)
     const canaryExited = exitEvent(canary)
+    exitPromises.push(canaryExited)
 
     const [shell, launcherExited, grandchild, canaryProcess] = await Promise.all([
       waitForBarrier(fixtures.waitForRole('target-shell'), 'target shell readiness'),
@@ -295,6 +300,9 @@ async function exercise(resourcesDir) {
     await fixtures.close()
     process.stdout.write(`${EVIDENCE_PREFIX}${JSON.stringify(evidence)}\n`)
     completed = true
+  } catch (error) {
+    process.stderr.write(`[windows-pty-native-capability-smoke] ${error.message}\n`)
+    throw error
   } finally {
     for (const pty of created) {
       if (!closed.has(pty)) {
@@ -302,9 +310,18 @@ async function exercise(resourcesDir) {
       }
     }
     if (!completed) {
+      await Promise.allSettled(
+        exitPromises.map((exit) => waitForBarrier(exit, 'cleanup PTY exit', 5_000))
+      )
       fixtures.destroySockets()
+      try {
+        await waitForBarrier(fixtures.close(), 'fixture server cleanup', 5_000)
+      } catch (error) {
+        process.stderr.write(`[windows-pty-native-capability-smoke] ${error.message}\n`)
+      }
+    } else {
+      await fixtures.close()
     }
-    await fixtures.close()
   }
 }
 
