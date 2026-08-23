@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-08-20",
+  "updatedAt": "2026-08-23",
   "policy": {
     "maturityLevels": ["experimental", "soak", "blocking", "accepted-gap", "deprecated"],
     "blockingPromotion": {
@@ -14089,6 +14089,259 @@
         "The legacy remote-uploads root is intentionally not reclaimed while a mixed-version relay may still own bytes there; eventual legacy-root retirement requires a separate compatibility decision."
       ],
       "demotionRule": "Demote if one live owner can remove another owner's bytes, cleanup exceeds 64 inspected entries per attempt, a lifecycle path retains its exact owned archive after settlement, or the process oracle flakes without an identified harness or product defect."
+    },
+    {
+      "id": "quick-open.paired-host-path-search",
+      "title": "Paired Quick Open searches bounded host paths",
+      "maturity": "experimental",
+      "protection": "partial",
+      "owner": "runtime-filesystem",
+      "layer": "host-file-search-and-paired-runtime",
+      "surfaces": ["Quick Open", "paired desktop runtime", "headless runtime host"],
+      "platforms": ["macos", "linux", "windows"],
+      "providers": ["local", "ssh", "paired-runtime"],
+      "coveredPlatforms": ["macos"],
+      "coveredProviders": ["local", "paired-runtime"],
+      "coverageNotes": "Focused contracts cover bounded host search, ignore traversal, RPC response bounds, renderer cancellation, deterministic ordering, and transport payload size. Headed and headless paired-runtime journeys use an 88,763-file fixture and are source-routed into advisory PR E2E; physical SSH and Windows remain gaps.",
+      "motivatingLinks": [
+        "https://linear.app/stably/issue/STA-4354",
+        "https://github.com/stablyai/orca/pull/15158"
+      ],
+      "invariant": "Quick Open queries execute on the worktree host, find exact ignored-path matches beyond the legacy inventory prefix, return deterministic bounded results, and keep the paired runtime usable without overflowing its outbound reply buffer.",
+      "oracle": "Create 88,763 paths with 77,792 ignored entries and a nominal 22 GiB sparse file, query exact late gitignored and .orcaignored targets through headed and headless paired runtimes, and require one deterministic match, a payload below 4 KiB, and a healthy follow-up worktree call.",
+      "commands": [
+        "pnpm exec vitest run --config config/vitest.config.ts src/main/ipc/filesystem-search-file-paths.test.ts src/main/runtime/orca-runtime-files-search.test.ts src/main/runtime/rpc/methods/files-path-search.test.ts src/renderer/src/components/quick-open-file-list.react.test.tsx src/renderer/src/runtime/runtime-file-client-search-listing.test.ts src/shared/quick-open-transport-budget.test.ts --reporter=dot",
+        "pnpm exec playwright test tests/e2e/paired-quick-open-large-tree.spec.ts --config tests/playwright.config.ts --workers=1"
+      ],
+      "testFiles": [
+        "src/main/ipc/filesystem-search-file-paths.test.ts",
+        "src/main/runtime/orca-runtime-files-search.test.ts",
+        "src/main/runtime/rpc/methods/files-path-search.test.ts",
+        "src/renderer/src/components/quick-open-file-list.react.test.tsx",
+        "src/renderer/src/runtime/runtime-file-client-search-listing.test.ts",
+        "src/shared/quick-open-transport-budget.test.ts",
+        "tests/e2e/paired-quick-open-large-tree.spec.ts"
+      ],
+      "assertionRefs": [
+        {
+          "file": "src/main/ipc/filesystem-search-file-paths.test.ts",
+          "assertions": [
+            "host search stays bounded and respects gitignore plus .orcaignore traversal"
+          ]
+        },
+        {
+          "file": "src/renderer/src/runtime/runtime-file-client-search-listing.test.ts",
+          "assertions": ["paired path queries stay deterministic and bounded across transport"]
+        },
+        {
+          "file": "tests/e2e/paired-quick-open-large-tree.spec.ts",
+          "assertions": ["headed and headless hosts find late ignored targets and remain callable"]
+        }
+      ],
+      "evidenceRuns": [
+        {
+          "date": "2026-08-23",
+          "runner": "local",
+          "platform": "macos",
+          "result": "passed",
+          "command": "pnpm exec vitest run --config config/vitest.config.ts src/main/ipc/filesystem-search-file-paths.test.ts src/main/runtime/orca-runtime-files-search.test.ts src/main/runtime/rpc/methods/files-path-search.test.ts src/renderer/src/components/quick-open-file-list.react.test.tsx src/renderer/src/runtime/runtime-file-client-search-listing.test.ts src/shared/quick-open-transport-budget.test.ts --reporter=dot",
+          "durationSeconds": 5,
+          "summary": "Six focused files passed 52 tests across host search, runtime RPC, renderer query ownership, and transport bounds; existing React act warnings remained non-fatal."
+        }
+      ],
+      "runtimeBudget": {
+        "p95Seconds": 300,
+        "scope": "focused deterministic contracts plus two serial paired Electron large-tree journeys"
+      },
+      "flakeHistory": {
+        "status": "not-started",
+        "evidence": "The sentinel is newly source-routed for PR collection; no route-specific soak history exists yet."
+      },
+      "redGreenEvidence": {
+        "status": "complete",
+        "evidence": "The merged STA-4354 oracle places both targets beyond the removed inventory prefix; the old client-side prefix inventory misses them, while host search returns the exact deterministic paths."
+      },
+      "performanceBudget": {
+        "required": true,
+        "evidence": "Search is query-driven, result-limited, cancellation-aware, and payload-bounded; PR routing selects this fixture only for its exact production authorities or direct spec edits."
+      },
+      "promotionCriteria": [
+        "Collect 100 consecutive routed CI passes or 14 days without an unexplained flake.",
+        "Collect physical SSH and Windows paired-runtime evidence.",
+        "Keep deterministic result hashes, payload bounds, and post-query runtime health green."
+      ],
+      "knownGaps": [
+        "The live large-tree evidence uses local headed and headless hosts rather than physical SSH.",
+        "Windows path-search tooling and filesystem behavior are not represented by the local evidence."
+      ],
+      "demotionRule": "Demote if the routed fixture flakes without a diagnosed product or harness cause, returns unbounded payloads, misses either late ignored target, or leaves the paired runtime unhealthy."
+    },
+    {
+      "id": "terminal-session.host-cold-park-stream-continuity",
+      "title": "Host cold parking preserves paired terminal streams",
+      "maturity": "experimental",
+      "protection": "partial",
+      "owner": "terminal-runtime-graph",
+      "layer": "renderer-runtime-graph-and-terminal-stream",
+      "surfaces": ["host terminal cold park", "paired remote viewer", "multi-pane runtime graph"],
+      "platforms": ["macos", "linux", "windows"],
+      "providers": ["local-daemon", "ssh-daemon", "paired-runtime"],
+      "coveredPlatforms": ["macos"],
+      "coveredProviders": ["local-daemon", "paired-runtime"],
+      "coverageNotes": "Deterministic policy and multiplex tests separate renderer parking from authoritative stream liveness, while runtime-graph tests cover exact parked leaf, pane runtime ID, title, multi-pane active-leaf, and disposal behavior. One headed paired journey proves input and echoed output while the host pane remains cold-parked.",
+      "motivatingLinks": [
+        "https://linear.app/stably/issue/STA-2854",
+        "https://github.com/stablyai/orca/pull/15514"
+      ],
+      "invariant": "Cold parking a host renderer pane never retires its live PTY's runtime-graph leaf or interrupts a paired subscriber's stream, input, reconnect, pane identity, or multi-pane routing; the leaf retires only when exact PTY ownership ends.",
+      "oracle": "Cold-park a host-owned pane while a paired client actively views it, require the host manager to unmount, then type through the client and require the same PTY to receive and echo the token without any disconnected sample. Separately publish multi-pane parked leaves with exact pane runtime IDs and require per-PTY disposal to remove only the retired leaf.",
+      "commands": [
+        "pnpm exec vitest run --config config/vitest.config.ts src/renderer/src/components/terminal-pane/terminal-parked-tab-watchers.test.ts src/renderer/src/runtime/sync-runtime-graph-parked-leaf.test.ts tests/e2e/host-cold-park-remote-subscriber.unit.test.ts --reporter=dot",
+        "pnpm exec playwright test tests/e2e/host-parked-pane-remote-viewer.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1"
+      ],
+      "testFiles": [
+        "src/renderer/src/components/terminal-pane/terminal-parked-tab-watchers.test.ts",
+        "src/renderer/src/runtime/sync-runtime-graph-parked-leaf.test.ts",
+        "tests/e2e/host-cold-park-remote-subscriber.unit.test.ts",
+        "tests/e2e/host-parked-pane-remote-viewer.spec.ts"
+      ],
+      "assertionRefs": [
+        {
+          "file": "src/renderer/src/runtime/sync-runtime-graph-parked-leaf.test.ts",
+          "assertions": [
+            "a live parked watcher publishes the exact leaf, pane runtime ID, and title",
+            "multi-pane publication never names an unsent active leaf and exact disposal retires ownership"
+          ]
+        },
+        {
+          "file": "tests/e2e/host-cold-park-remote-subscriber.unit.test.ts",
+          "assertions": [
+            "a fully unmounted host renderer still streams, accepts input, and resubscribes"
+          ]
+        },
+        {
+          "file": "tests/e2e/host-parked-pane-remote-viewer.spec.ts",
+          "assertions": [
+            "a cold-parked host pane carries a complete paired-client input and echo round trip"
+          ]
+        }
+      ],
+      "evidenceRuns": [
+        {
+          "date": "2026-08-23",
+          "runner": "local",
+          "platform": "macos",
+          "result": "passed",
+          "command": "pnpm exec vitest run --config config/vitest.config.ts src/renderer/src/components/terminal-pane/terminal-parked-tab-watchers.test.ts src/renderer/src/runtime/sync-runtime-graph-parked-leaf.test.ts tests/e2e/host-cold-park-remote-subscriber.unit.test.ts --reporter=dot",
+          "durationSeconds": 8,
+          "summary": "Three focused files passed 64 watcher, multi-pane runtime-graph, cold-park policy, and authoritative-stream tests."
+        }
+      ],
+      "runtimeBudget": {
+        "p95Seconds": 180,
+        "scope": "focused deterministic contracts plus one serial headed paired cold-park journey"
+      },
+      "flakeHistory": {
+        "status": "not-started",
+        "evidence": "The existing sentinel is newly source-routed for PR collection; route-specific CI history has not started."
+      },
+      "redGreenEvidence": {
+        "status": "complete",
+        "evidence": "On the affected STA-2854 path, cold parking removed the runtime-graph leaf and the paired stream disconnected; retaining the exact live parked watcher leaf keeps every sampled client phase connected and completes input plus echo."
+      },
+      "performanceBudget": {
+        "required": true,
+        "evidence": "Publication reads the existing bounded parked-watcher registry and adds no timer, polling, provider scan, subprocess, or wire field; the 90-second live timeline is selected only by exact parking and graph authorities."
+      },
+      "promotionCriteria": [
+        "Collect 100 consecutive routed CI passes or 14 days without an unexplained flake.",
+        "Collect Linux, Windows, WSL, and physical SSH cold-park evidence.",
+        "Keep exact per-leaf disposal, multi-pane identity, and full client round-trip assertions green."
+      ],
+      "knownGaps": [
+        "The live paired cold-park journey is macOS-only and uses a local daemon PTY.",
+        "Physical SSH, WSL, Linux, Windows, and host-restart cold-park journeys are not recorded."
+      ],
+      "demotionRule": "Demote if a live parked PTY loses its exact graph leaf, a retired PTY remains published, multi-pane identity drifts, or the routed client round trip flakes without a diagnosed cause."
+    },
+    {
+      "id": "terminal-session.remote-pane-layout-retry",
+      "title": "Remote pane layouts retry identical state after reconnect",
+      "maturity": "experimental",
+      "protection": "partial",
+      "owner": "terminal-layout-sync",
+      "layer": "renderer-paired-runtime-layout",
+      "surfaces": ["paired terminal split layout", "pane title", "runtime reconnect"],
+      "platforms": ["macos", "linux", "windows"],
+      "providers": ["paired-runtime"],
+      "coveredPlatforms": ["macos"],
+      "coveredProviders": ["paired-runtime"],
+      "coverageNotes": "Pure contracts cover identity-equal local write bailouts and remote push deduplication, while a headless-host paired Electron journey proves that an identical local layout is retried after a failed disconnected push and becomes visible to an independent observer.",
+      "motivatingLinks": ["https://github.com/stablyai/orca/pull/12420"],
+      "invariant": "Identity-equal pane layout writes avoid local churn but never suppress a remote retry whose prior push failed; reconnecting and repeating the same layout persists it on the host and publishes it to other paired clients.",
+      "oracle": "Disconnect a paired client, change a pane title, and observe the failed host push while local state retains the layout. Reconnect without remounting, submit the identical title again, and require the headless host plus a second paired observer to receive it.",
+      "commands": [
+        "pnpm exec vitest run --config config/vitest.config.ts src/renderer/src/components/terminal-pane/remote-pane-layout-push.test.ts src/renderer/src/store/slices/terminal-write-identity-bailouts.test.ts --reporter=dot",
+        "pnpm exec playwright test tests/e2e/paired-remote-pane-layout-retry.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1"
+      ],
+      "testFiles": [
+        "src/renderer/src/components/terminal-pane/remote-pane-layout-push.test.ts",
+        "src/renderer/src/store/slices/terminal-write-identity-bailouts.test.ts",
+        "tests/e2e/paired-remote-pane-layout-retry.spec.ts"
+      ],
+      "assertionRefs": [
+        {
+          "file": "src/renderer/src/components/terminal-pane/remote-pane-layout-push.test.ts",
+          "assertions": ["only successfully pushed layouts deduplicate later remote writes"]
+        },
+        {
+          "file": "src/renderer/src/store/slices/terminal-write-identity-bailouts.test.ts",
+          "assertions": ["identity-equal layout and timer writes avoid redundant local updates"]
+        },
+        {
+          "file": "tests/e2e/paired-remote-pane-layout-retry.spec.ts",
+          "assertions": [
+            "an identical layout retries after reconnect and reaches a second paired observer"
+          ]
+        }
+      ],
+      "evidenceRuns": [
+        {
+          "date": "2026-08-23",
+          "runner": "local",
+          "platform": "macos",
+          "result": "passed",
+          "command": "pnpm exec vitest run --config config/vitest.config.ts src/renderer/src/components/terminal-pane/remote-pane-layout-push.test.ts src/renderer/src/store/slices/terminal-write-identity-bailouts.test.ts --reporter=dot",
+          "durationSeconds": 5,
+          "summary": "Two focused files passed 20 remote-push and identity-bailout contracts."
+        }
+      ],
+      "runtimeBudget": {
+        "p95Seconds": 90,
+        "scope": "two focused renderer contracts plus one serial headless-host paired journey"
+      },
+      "flakeHistory": {
+        "status": "not-started",
+        "evidence": "The existing paired sentinel is newly source-routed and has no route-specific CI soak history."
+      },
+      "redGreenEvidence": {
+        "status": "complete",
+        "evidence": "The affected implementation cached the disconnected layout before host acknowledgment and suppressed the identical retry; the merged oracle keeps only successful remote pushes deduplicated and the observer receives the retried title."
+      },
+      "performanceBudget": {
+        "required": true,
+        "evidence": "Successful identity-equal writes remain O(1) bailouts; one failed remote push permits one later identical retry, with no polling, timer, provider scan, subprocess, or new wire field."
+      },
+      "promotionCriteria": [
+        "Collect 100 consecutive routed CI passes or 14 days without an unexplained flake.",
+        "Collect Linux and Windows paired-runtime reconnect evidence.",
+        "Keep local identity bailouts and failed-push retry ownership green."
+      ],
+      "knownGaps": [
+        "The paired reconnect journey has only local macOS evidence.",
+        "The sentinel changes a pane title within an existing layout; concurrent split and close conflicts remain separate coverage."
+      ],
+      "demotionRule": "Demote if a failed push suppresses an identical retry, a successful equal write resumes redundant churn, or the routed observer journey flakes without a diagnosed cause."
     }
   ]
 }
