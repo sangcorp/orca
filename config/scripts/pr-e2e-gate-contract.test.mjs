@@ -200,8 +200,12 @@ describe('PR E2E gate contract', () => {
     ])
   })
 
-  it('routes paired Quick Open, host cold-park, and pane-layout sources narrowly', () => {
+  it('routes P0 sentinels from their causal sources', () => {
     const cases = [
+      [
+        'src/renderer/src/components/tab-bar/TabBarQuickCommandsMenu.tsx',
+        'tests/e2e/terminal-quick-command-pre-bind-recovery.spec.ts'
+      ],
       ['src/main/runtime/orca-runtime-files.ts', 'tests/e2e/paired-quick-open-large-tree.spec.ts'],
       [
         'src/renderer/src/runtime/sync-runtime-graph.ts',
@@ -214,7 +218,7 @@ describe('PR E2E gate contract', () => {
     ]
     for (const [source, spec] of cases) {
       expect(selectPrE2eSpecs([source]), source).toEqual([spec])
-      expect(selectPrE2eSpecs([source.replace(/\.ts$/, '.test.ts')]), source).toEqual([])
+      expect(selectPrE2eSpecs([source.replace(/\.tsx?$/, '.test.ts')]), source).toEqual([])
       expect(existsSync(join(projectDir, spec)), spec).toBe(true)
     }
     expect(
@@ -228,6 +232,7 @@ describe('PR E2E gate contract', () => {
 
   it('keeps source-routed sentinels registered to their reliability gates', () => {
     const routedGateIds = [
+      'terminal-startup.quick-command-pre-bind-recovery',
       'quick-open.paired-host-path-search',
       'terminal-session.host-cold-park-stream-continuity',
       'terminal-session.remote-pane-layout-retry'

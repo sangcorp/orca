@@ -45,6 +45,15 @@ export const PR_E2E_SOURCE_ROUTES = [
       )
   },
   {
+    id: 'terminal-startup.quick-command-pre-bind-recovery',
+    specs: ['tests/e2e/terminal-quick-command-pre-bind-recovery.spec.ts'],
+    matches: (file) =>
+      isProductSource(file) &&
+      /^(?:src\/renderer\/src\/components\/tab-bar\/TabBarQuickCommandsMenu\.tsx|src\/renderer\/src\/hooks\/use-terminal-quick-command-hosts\.ts|src\/renderer\/src\/components\/terminal-pane\/(?:pty-transport|terminal-pty-pre-spawn-e2e-barrier)\.ts|src\/renderer\/src\/components\/terminal-pane\/(?:TerminalPane|use-terminal-pane-lifecycle)\.tsx?|src\/renderer\/src\/store\/slices\/terminals\.ts)$/.test(
+        file
+      )
+  },
+  {
     id: 'quick-open.paired-host-path-search',
     specs: ['tests/e2e/paired-quick-open-large-tree.spec.ts'],
     matches: (file) =>

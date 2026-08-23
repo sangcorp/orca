@@ -14091,6 +14091,86 @@
       "demotionRule": "Demote if one live owner can remove another owner's bytes, cleanup exceeds 64 inspected entries per attempt, a lifecycle path retains its exact owned archive after settlement, or the process oracle flakes without an identified harness or product defect."
     },
     {
+      "id": "terminal-startup.quick-command-pre-bind-recovery",
+      "title": "Quick Command survives a pre-bind terminal recovery",
+      "maturity": "experimental",
+      "protection": "partial",
+      "owner": "terminal-renderer-lifecycle",
+      "layer": "electron-ui-and-real-local-pty",
+      "surfaces": ["Quick Commands", "terminal pane recovery", "fresh PTY startup"],
+      "platforms": ["macos", "linux", "windows"],
+      "providers": ["local"],
+      "coveredPlatforms": ["macos"],
+      "coveredProviders": ["local"],
+      "coverageNotes": "A forced pre-spawn barrier makes one visible Quick Command cross a recovery remount before its successor PTY binds. Store and lifecycle contracts retain lower-layer ownership; the Electron sentinel adds the rendered affordance, real PTY, exact-once terminal marker, staged identity file, and unrelated sibling canary.",
+      "motivatingLinks": [
+        "https://linear.app/stably/issue/STA-4876",
+        "https://github.com/stablyai/orca/pull/15630"
+      ],
+      "invariant": "A Quick Command selected for a new terminal remains owned by that tab through a recovery remount, executes exactly once only after the successor PTY binds, and never reaches an unrelated terminal.",
+      "oracle": "Arm the E2E-only pre-spawn barrier, click the visible Quick Command, force one recovery generation while the original spawn is blocked, and release it. Require one exact semantic xterm marker, an independently written pane/tab identity file matching the bound live PTY, queue consumption only after bind, and a live interactive sibling canary.",
+      "commands": [
+        "pnpm exec vitest run --config config/vitest.config.ts src/renderer/src/components/terminal-pane/pty-connection-queued-startup-consume.test.ts src/renderer/src/components/terminal-pane/use-terminal-pane-lifecycle.test.ts src/renderer/src/store/slices/terminal-startup-command-retention.test.ts --reporter=dot",
+        "pnpm exec playwright test tests/e2e/terminal-quick-command-pre-bind-recovery.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1"
+      ],
+      "testFiles": [
+        "src/renderer/src/components/terminal-pane/pty-connection-queued-startup-consume.test.ts",
+        "src/renderer/src/components/terminal-pane/use-terminal-pane-lifecycle.test.ts",
+        "src/renderer/src/store/slices/terminal-startup-command-retention.test.ts",
+        "tests/e2e/terminal-quick-command-pre-bind-recovery.spec.ts"
+      ],
+      "assertionRefs": [
+        {
+          "file": "src/renderer/src/store/slices/terminal-startup-command-retention.test.ts",
+          "assertions": ["recovery remount retains the exact queued startup command"]
+        },
+        {
+          "file": "tests/e2e/terminal-quick-command-pre-bind-recovery.spec.ts",
+          "assertions": [
+            "the visible Quick Command executes exactly once in the intended fresh PTY",
+            "queue consumption follows PTY binding and the sibling terminal remains live"
+          ]
+        }
+      ],
+      "evidenceRuns": [
+        {
+          "date": "2026-08-23",
+          "runner": "local",
+          "platform": "macos",
+          "result": "passed",
+          "command": "pnpm exec playwright test tests/e2e/terminal-quick-command-pre-bind-recovery.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1",
+          "durationSeconds": 20,
+          "summary": "The combined branch passed the forced-headful Electron flow in 19.9 seconds after an E2E-mode build."
+        }
+      ],
+      "runtimeBudget": {
+        "p95Seconds": 90,
+        "scope": "one isolated Electron app, one forced recovery remount, and two local PTYs"
+      },
+      "flakeHistory": {
+        "status": "not-started",
+        "evidence": "The new sentinel has local headless and forced-headful evidence but no routed CI soak history."
+      },
+      "redGreenEvidence": {
+        "status": "complete",
+        "evidence": "The byte-identical spec failed with pending:null before PTY bind when the pre-6e25a900 eager-consume behavior was restored, then passed after restoration."
+      },
+      "performanceBudget": {
+        "required": true,
+        "evidence": "The barrier exists only in E2E builds, adds no production timer or polling, and the live sentinel completed in under 20 seconds locally."
+      },
+      "promotionCriteria": [
+        "Collect 100 consecutive routed CI passes over at least 14 days without an unexplained flake.",
+        "Keep retries at zero and retain both semantic and identity oracles.",
+        "Collect Linux Electron evidence before promoting the focused lane to blocking."
+      ],
+      "knownGaps": [
+        "Windows, Linux, SSH, WSL, and paired-runtime topologies are not covered because they were not causal to STA-4876.",
+        "The sentinel remains advisory while the repository-wide E2E signal is red."
+      ],
+      "demotionRule": "Demote if the barrier can be bypassed nondeterministically, either independent oracle is removed, the sibling canary is no longer isolated, or one unexplained flake occurs."
+    },
+    {
       "id": "quick-open.paired-host-path-search",
       "title": "Paired Quick Open searches bounded host paths",
       "maturity": "experimental",
