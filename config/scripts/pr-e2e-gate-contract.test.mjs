@@ -212,6 +212,10 @@ describe('PR E2E gate contract', () => {
         'tests/e2e/host-parked-pane-remote-viewer.spec.ts'
       ],
       [
+        'src/renderer/src/runtime/remote-runtime-terminal-multiplexer.ts',
+        'tests/e2e/paired-remote-terminal-materialization-reconnect.spec.ts'
+      ],
+      [
         'src/renderer/src/components/terminal-pane/remote-pane-layout-push.ts',
         'tests/e2e/paired-remote-pane-layout-retry.spec.ts'
       ]
@@ -228,6 +232,19 @@ describe('PR E2E gate contract', () => {
       ])
     ).toEqual(['tests/e2e/paired-quick-open-large-tree.spec.ts'])
     expect(selectPrE2eSpecs(['src/renderer/src/components/FileExplorer.tsx'])).toEqual([])
+    expect(
+      selectPrE2eSpecs([
+        'src/renderer/src/components/terminal-pane/remote-runtime-pty-transport.ts'
+      ])
+    ).toContain('tests/e2e/paired-remote-terminal-materialization-reconnect.spec.ts')
+    expect(
+      selectPrE2eSpecs([
+        'src/renderer/src/components/terminal-pane/remote-runtime-pty-transport-test-harness.ts'
+      ])
+    ).not.toContain('tests/e2e/paired-remote-terminal-materialization-reconnect.spec.ts')
+    expect(selectPrE2eSpecs(['src/main/ipc/pty.ts'])).not.toContain(
+      'tests/e2e/paired-remote-terminal-materialization-reconnect.spec.ts'
+    )
   })
 
   it('keeps source-routed sentinels registered to their reliability gates', () => {
@@ -235,6 +252,7 @@ describe('PR E2E gate contract', () => {
       'terminal-startup.quick-command-pre-bind-recovery',
       'quick-open.paired-host-path-search',
       'terminal-session.host-cold-park-stream-continuity',
+      'terminal-provider.ssh-remote-reattach-contract',
       'terminal-session.remote-pane-layout-retry'
     ]
     for (const gateId of routedGateIds) {

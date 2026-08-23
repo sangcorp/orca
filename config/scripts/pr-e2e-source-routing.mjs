@@ -72,6 +72,16 @@ export const PR_E2E_SOURCE_ROUTES = [
       )
   },
   {
+    id: 'terminal-provider.ssh-remote-reattach-contract',
+    specs: ['tests/e2e/paired-remote-terminal-materialization-reconnect.spec.ts'],
+    matches: (file) =>
+      isProductSource(file) &&
+      !file.endsWith('-test-harness.ts') &&
+      /^(?:src\/renderer\/src\/components\/terminal-pane\/remote-runtime-pty-transport(?:-[a-z0-9-]+)?\.ts|src\/renderer\/src\/runtime\/remote-runtime-terminal-multiplexer\.ts)$/.test(
+        file
+      )
+  },
+  {
     id: 'terminal-session.remote-pane-layout-retry',
     specs: ['tests/e2e/paired-remote-pane-layout-retry.spec.ts'],
     matches: (file) =>
@@ -92,7 +102,7 @@ export function selectPrE2eSpecs(changedPaths, reportRoute = () => undefined) {
     route.specs.forEach((spec) => specs.add(spec))
     reportRoute(`[pr-e2e] ${route.id}: ${route.specs.join(', ')}`)
   }
-  return [...specs].sort()
+  return [...specs].sort((left, right) => left.localeCompare(right))
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
