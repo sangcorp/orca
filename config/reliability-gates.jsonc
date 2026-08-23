@@ -14164,7 +14164,8 @@
       "oracle": "Arm the E2E-only pre-spawn barrier, click the visible Quick Command, force one recovery generation while the original spawn is blocked, and release it. Require one exact semantic xterm marker, an independently written pane/tab identity file matching the bound live PTY, queue consumption only after bind, and a live interactive sibling canary.",
       "commands": [
         "pnpm exec vitest run --config config/vitest.config.ts src/renderer/src/components/terminal-pane/pty-connection-queued-startup-consume.test.ts src/renderer/src/components/terminal-pane/use-terminal-pane-lifecycle.test.ts src/renderer/src/store/slices/terminal-startup-command-retention.test.ts --reporter=dot",
-        "pnpm exec playwright test tests/e2e/terminal-quick-command-pre-bind-recovery.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1"
+        "pnpm exec playwright test tests/e2e/terminal-quick-command-pre-bind-recovery.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1",
+        "ORCA_E2E_FORCE_HEADFUL=1 SKIP_BUILD=1 pnpm exec playwright test tests/e2e/terminal-quick-command-pre-bind-recovery.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1"
       ],
       "testFiles": [
         "src/renderer/src/components/terminal-pane/pty-connection-queued-startup-consume.test.ts",
@@ -14192,8 +14193,17 @@
           "platform": "macos",
           "result": "passed",
           "command": "pnpm exec playwright test tests/e2e/terminal-quick-command-pre-bind-recovery.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1",
-          "durationSeconds": 20,
-          "summary": "The combined branch passed the forced-headful Electron flow in 19.9 seconds after an E2E-mode build."
+          "durationSeconds": 23,
+          "summary": "The exact rebased PR head passed the headless Electron flow in 23.0 seconds after an E2E-mode build."
+        },
+        {
+          "date": "2026-08-23",
+          "runner": "local",
+          "platform": "macos",
+          "result": "passed",
+          "command": "ORCA_E2E_FORCE_HEADFUL=1 SKIP_BUILD=1 pnpm exec playwright test tests/e2e/terminal-quick-command-pre-bind-recovery.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1",
+          "durationSeconds": 24,
+          "summary": "The exact rebased PR head passed the visible-window Electron flow in 23.9 seconds using the same E2E build."
         }
       ],
       "runtimeBudget": {

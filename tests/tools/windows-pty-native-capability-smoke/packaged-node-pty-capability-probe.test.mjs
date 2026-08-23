@@ -1,9 +1,14 @@
+import { mkdtemp, rm } from 'node:fs/promises'
 import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
 const probePath = require.resolve('./packaged-node-pty-capability-probe.cjs')
-const { buildDetachedGrandchildLaunch } = require(probePath)
+const { buildDetachedGrandchildLaunch, createFixtureServer, reportFixtureObservation } = require(
+  probePath
+)
 const originalSystemRoot = process.env.SystemRoot
 
 afterEach(() => {
@@ -32,5 +37,33 @@ describe('packaged node-pty detached launcher', () => {
       'target-grandchild'
     ])
     expect(JSON.stringify(launch)).not.toMatch(/cmd\.exe|start "" \/b/i)
+  })
+
+  it('closes one-shot fixture observations before server teardown', async () => {
+    const fixtureDir = await mkdtemp(join(tmpdir(), 'orca-pty-capability-'))
+    const channel = join(fixtureDir, 'fixture.sock')
+    const fixtureToken = 'fixture-token'
+    const fixtures = createFixtureServer(channel, fixtureToken)
+
+    try {
+      await fixtures.listening
+      const observationPromise = fixtures.waitForRole('target-launcher-exited')
+
+      await reportFixtureObservation(channel, fixtureToken, 'target-launcher-exited', {
+        pid: 1234
+      })
+
+      await expect(observationPromise).resolves.toEqual({
+        pid: 1234,
+        fixtureToken,
+        role: 'target-launcher-exited',
+        channel
+      })
+      await expect(fixtures.close()).resolves.toBeUndefined()
+    } finally {
+      fixtures.destroySockets()
+      await fixtures.close()
+      await rm(fixtureDir, { recursive: true, force: true })
+    }
   })
 })

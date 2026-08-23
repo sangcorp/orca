@@ -97,8 +97,11 @@ describe('PR E2E gate contract', () => {
     expect(changedRun.run).toContain('. != "tests/e2e/ssh-startup-exec-readiness.spec.ts"')
     expect(changedRun.run).toContain('. != "tests/e2e/paired-startup-exec-readiness.spec.ts"')
     expect(changedRun.run).toContain('if [ "${#TEST_FILES[@]}" -eq 0 ]')
-    expect(changedRun.run).toContain('pnpm run test:e2e "${TEST_FILES[@]}" --workers=1')
-    expect(changedRun.run).not.toContain('--project=')
+    expect(changedRun.run).toContain('grep -l \'@headful\' "${TEST_FILES[@]}"')
+    expect(changedRun.run).toContain('E2E_PROJECT_ARGS+=(--project=electron-headful)')
+    expect(changedRun.run).toContain(
+      'pnpm run test:e2e "${TEST_FILES[@]}" --workers=1 "${E2E_PROJECT_ARGS[@]}"'
+    )
     expect(playwrightConfig).toContain('retries: 0')
   })
 
@@ -224,6 +227,27 @@ describe('PR E2E gate contract', () => {
       expect(selectPrE2eSpecs([source]), source).toEqual([spec])
       expect(selectPrE2eSpecs([source.replace(/\.tsx?$/, '.test.ts')]), source).toEqual([])
       expect(existsSync(join(projectDir, spec)), spec).toBe(true)
+    }
+    const quickCommandSpec = 'tests/e2e/terminal-quick-command-pre-bind-recovery.spec.ts'
+    for (const source of [
+      'src/renderer/src/components/terminal-pane/pty-connection.ts',
+      'src/renderer/src/components/terminal-pane/pty-connection/connect-pane-pty.ts',
+      'src/renderer/src/components/terminal-pane/pty-connection/fresh-spawn-start.ts',
+      'src/renderer/src/components/terminal-pane/pty-connection/pane-pty-visibility-bind.ts',
+      'src/renderer/src/components/terminal-pane/pty-connection/pty-input-recovery.ts'
+    ]) {
+      expect(selectPrE2eSpecs([source]), source).toContain(quickCommandSpec)
+      expect(selectPrE2eSpecs([source.replace(/\.ts$/, '.test.ts')]), source).not.toContain(
+        quickCommandSpec
+      )
+    }
+    for (const source of [
+      'src/main/ipc/rg-availability.ts',
+      'src/shared/ripgrep-process-availability.ts'
+    ]) {
+      expect(selectPrE2eSpecs([source]), source).toEqual([
+        'tests/e2e/paired-quick-open-large-tree.spec.ts'
+      ])
     }
     expect(
       selectPrE2eSpecs([

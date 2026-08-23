@@ -26,6 +26,17 @@ function connectFixture(channel, fixtureToken, role, extra = {}) {
   return socket
 }
 
+function reportFixtureObservation(channel, fixtureToken, role, extra = {}) {
+  return new Promise((resolve, reject) => {
+    const socket = net.createConnection(channel)
+    socket.once('connect', () => {
+      socket.end(`${JSON.stringify(fixtureObservation(fixtureToken, role, channel, extra))}\n`)
+    })
+    socket.once('error', reject)
+    socket.once('close', resolve)
+  })
+}
+
 function buildDetachedGrandchildLaunch(channel, fixtureToken) {
   return {
     program: path.join(process.env.SystemRoot, 'System32', 'wscript.exe'),
@@ -61,8 +72,9 @@ function startDetachedGrandchild(channel, fixtureToken, resourcesDir) {
         reject(new Error(`detached launcher exited ${code}`))
         return
       }
-      connectFixture(channel, fixtureToken, 'target-launcher-exited', { pid: child.pid })
-      resolve(child.pid)
+      reportFixtureObservation(channel, fixtureToken, 'target-launcher-exited', {
+        pid: child.pid
+      }).then(() => resolve(child.pid), reject)
     })
   })
 }
@@ -342,7 +354,7 @@ async function main() {
   throw new Error(`unknown packaged node-pty capability probe mode: ${mode}`)
 }
 
-module.exports = { buildDetachedGrandchildLaunch }
+module.exports = { buildDetachedGrandchildLaunch, createFixtureServer, reportFixtureObservation }
 
 if (require.main === module) {
   main().catch((error) => {

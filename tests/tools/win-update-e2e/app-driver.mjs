@@ -386,32 +386,6 @@ export async function listTabIds(page) {
     )
 }
 
-/** Activate one exact tab and require its sole terminal surface to be visible. */
-export async function activateTerminalTab(page, terminalTabId) {
-  await dismissKnownOverlays(page)
-  const tab = page.locator(`${SORTABLE_TAB}[data-tab-id="${String(terminalTabId)}"]`)
-  if ((await tab.count()) !== 1) {
-    throw new Error(`terminal tab ${terminalTabId} was not unique`)
-  }
-  await tab.click({ timeout: 15_000 })
-  await page.waitForFunction(
-    ({ selector, tabId }) => {
-      const matches = Array.from(document.querySelectorAll(selector)).filter(
-        (candidate) => candidate.getAttribute('data-tab-id') === tabId
-      )
-      return matches.length === 1 && matches[0].getAttribute('data-active') === 'true'
-    },
-    { selector: SORTABLE_TAB, tabId: String(terminalTabId) },
-    { timeout: 15_000 }
-  )
-  const surface = page.locator(`[data-terminal-tab-id="${String(terminalTabId)}"]:visible`)
-  await surface.waitFor({ state: 'visible', timeout: 15_000 })
-  if ((await surface.count()) !== 1) {
-    throw new Error(`terminal tab ${terminalTabId} did not expose one visible surface`)
-  }
-  return surface
-}
-
 /**
  * Focus the live terminal so keystrokes reach the shell. Clicking the visible
  * xterm surface is what actually gives xterm keyboard focus — focusing the
@@ -422,9 +396,10 @@ export async function focusActiveTerminal(page, terminalTabId = null) {
   // A feature-tip modal can appear late and swallow keystrokes; clear any before
   // focusing so typed commands actually reach the shell.
   await dismissKnownOverlays(page)
-  const surface = terminalTabId
-    ? await activateTerminalTab(page, terminalTabId)
-    : page.locator(TERMINAL_SURFACE_VISIBLE).first()
+  const selector = terminalTabId
+    ? `[data-terminal-tab-id="${String(terminalTabId)}"]:visible`
+    : TERMINAL_SURFACE_VISIBLE
+  const surface = page.locator(selector).first()
   const click = surface.click({ position: { x: 24, y: 24 }, timeout: 15_000 })
   // Why: an exact-tab proof must fail closed if that restored surface vanishes;
   // typing into whichever element retained focus could falsely target another tab.
@@ -459,13 +434,9 @@ export async function sendCtrlC(page, terminalTabId = null) {
  * shell as `while(True)` and never runs (the bug that silently broke every
  * loop/heartbeat probe while simple `$`-free commands worked).
  */
-export async function runShellCommand(page, psCommand, terminalTabId = null) {
+export async function runShellCommand(page, psCommand) {
   const escaped = psCommand.replace(/`/g, '``').replace(/"/g, '`"').replace(/\$/g, '`$')
-  await typeLine(
-    page,
-    `powershell.exe -NoProfile -NonInteractive -Command "${escaped}"`,
-    terminalTabId
-  )
+  await typeLine(page, `powershell.exe -NoProfile -NonInteractive -Command "${escaped}"`)
 }
 
 /**
@@ -523,8 +494,6 @@ export async function closeApp(app, timeoutMs = 10_000) {
   }
   const mainPid = await resolveElectronMainPid(app)
   let closeTimeout
-  let graceful = false
-  let forced = false
   try {
     await Promise.race([
       app.close(),
@@ -533,12 +502,10 @@ export async function closeApp(app, timeoutMs = 10_000) {
         closeTimeout.unref?.()
       })
     ])
-    graceful = true
   } catch {
     if (mainPid) {
       try {
         execFileSync('taskkill', ['/pid', String(mainPid), '/T', '/F'], { stdio: 'ignore' })
-        forced = true
       } catch {
         /* already gone */
       }
@@ -548,5 +515,4 @@ export async function closeApp(app, timeoutMs = 10_000) {
     // harness process alive until the failure deadline expires.
     clearTimeout(closeTimeout)
   }
-  return { mainPid, graceful, forced }
 }
