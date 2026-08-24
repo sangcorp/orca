@@ -56,6 +56,15 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
     const preSignalPromise = session.runtimeEnvironmentId
       ? Promise.resolve(null)
       : window.api.pty.declarePendingPaneSerializer(session.cacheKey).catch(() => null)
+    const clearPreSignaledSerializer = (): void => {
+      // A disposed pre-bind connect must not keep a successor behind a slow
+      // serializer declaration. Cleanup can finish independently of spawn ownership.
+      void preSignalPromise.then((gen) => {
+        if (typeof gen === 'number') {
+          void window.api.pty.clearPendingPaneSerializer(session.cacheKey, gen).catch(() => {})
+        }
+      })
+    }
 
     session.transportConnectInFlightSince = Date.now()
     const effectiveStartup = startupOverride === undefined ? session.paneStartup : startupOverride
@@ -196,6 +205,11 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
         if (resolvedPtyId) {
           session.reconcilePtySizeAfterSpawn(resolvedPtyId, session.cols, session.rows)
         }
+        if (!resolvedPtyId) {
+          clearPreSignaledSerializer()
+          session.finishReattachLiveDataDeferral(false, outputCallbacks.generation)
+          return null
+        }
         const gen = await preSignalPromise
         // Why: a bound PTY owns the renderer serializer even when the declare was
         // rejected; the gen token only settles or clears the pending declaration.
@@ -206,8 +220,6 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
           if (typeof gen === 'number') {
             void window.api.pty.settlePaneSerializer(session.cacheKey, gen).catch(() => {})
           }
-        } else if (typeof gen === 'number') {
-          void window.api.pty.clearPendingPaneSerializer(session.cacheKey, gen).catch(() => {})
         }
         if (resolvedPtyId && session.connectionId) {
           if (
@@ -229,10 +241,7 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
         ) {
           session.clearRegisteredStartupLaunchConfig()
         }
-        const gen = await preSignalPromise
-        if (typeof gen === 'number') {
-          void window.api.pty.clearPendingPaneSerializer(session.cacheKey, gen).catch(() => {})
-        }
+        clearPreSignaledSerializer()
         return null
       })
       .finally(() => {
