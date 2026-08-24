@@ -3,7 +3,7 @@ import { hasPtySerializer } from '../pty-buffer-serializer'
 import { writeTerminalOutput } from '@/lib/pane-manager/pane-terminal-output-scheduler'
 
 import { STARTUP_CWD_FALLBACK_NOTICE } from './startup-cwd-fallback-notice'
-import { pendingSpawnByPaneKey } from './pty-connect-limits'
+import { pendingSpawnByPaneKey, pendingSpawnGenerationByPaneKey } from './pty-connect-limits'
 import { shouldWritePtyOutputForeground } from './foreground-output-scan'
 import { isRemoteRuntimePtyId } from './paired-parked-terminal-restore'
 import { toProcessExitStartup } from './process-exit-startup'
@@ -247,6 +247,7 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
       .finally(() => {
         if (pendingSpawnByPaneKey.get(session.pendingSpawnKey) === trackedPromise) {
           pendingSpawnByPaneKey.delete(session.pendingSpawnKey)
+          pendingSpawnGenerationByPaneKey.delete(session.pendingSpawnKey)
         }
       })
     session.armDirectSshPaneRetryTimeout(trackedPromise, session.directSshRetryAttempt)
@@ -268,6 +269,7 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
     // Why: split panes in the same tab can spawn concurrently. Key by pane
     // as well as tab so a remount cannot attach to a sibling setup pane's PTY.
     pendingSpawnByPaneKey.set(session.pendingSpawnKey, trackedPromise)
+    pendingSpawnGenerationByPaneKey.set(session.pendingSpawnKey, session.tabGeneration)
     return trackedPromise
   }
 }

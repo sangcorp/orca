@@ -6,7 +6,10 @@ import { createMockTransport, createPane, createManager } from './pty-connection
 import { buildPaneConnectionDeps, buildDirectSshSplitRetryCommit } from './pty-connection-test-deps'
 import { createInitialStoreState } from './pty-connection-test-store-fixtures'
 import type { StoreState } from './pty-connection-test-store-state'
-import { pendingSpawnByPaneKey } from './pty-connection/pty-connect-limits'
+import {
+  pendingSpawnByPaneKey,
+  pendingSpawnGenerationByPaneKey
+} from './pty-connection/pty-connect-limits'
 import type { MockTransport } from './pty-connection-test-pane-fixtures'
 import {
   installTerminalTestGlobals,
@@ -141,6 +144,7 @@ describe('connectPanePty', () => {
 
   afterEach(async () => {
     pendingSpawnByPaneKey.clear()
+    pendingSpawnGenerationByPaneKey.clear()
     await restoreTerminalTestGlobals()
   })
 
