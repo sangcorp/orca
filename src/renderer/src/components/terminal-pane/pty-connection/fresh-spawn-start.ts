@@ -96,10 +96,9 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
       ...(coldRestoreOverride ? { launchAgent: coldRestoreOverride.agent } : {}),
       ...(session.shouldDeclareHiddenAtSpawn() ? { initiallyHidden: true } : {}),
       shouldContinue: () => {
-        const state = useAppStore.getState()
-        const currentTab =
-          state.getTab?.(session.deps.tabId) ??
-          state.tabsByWorktree[session.deps.worktreeId]?.find(
+        const currentTab = useAppStore
+          .getState()
+          .tabsByWorktree[session.deps.worktreeId]?.find(
             (candidate) => candidate.id === session.deps.tabId
           )
         return !session.disposed && (currentTab?.generation ?? 0) === session.tabGeneration

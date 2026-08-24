@@ -49,10 +49,9 @@ export function connectPanePty(
   const session = { pane, manager, deps } as ConnectPanePtySession
   session.shouldRefreshForegroundSynchronously = (): boolean =>
     !session.manager.hasWebglRenderer(session.pane.id)
-  const state = useAppStore.getState()
-  const tab =
-    state.getTab?.(deps.tabId) ??
-    state.tabsByWorktree[deps.worktreeId]?.find((candidate) => candidate.id === deps.tabId)
+  const tab = useAppStore
+    .getState()
+    .tabsByWorktree[deps.worktreeId]?.find((candidate) => candidate.id === deps.tabId)
   session.tabGeneration = tab?.generation ?? 0
   // Why: recovery ownership belongs to this xterm instance. A request that
   // settles after remount must not remount its already-replaced successor.
