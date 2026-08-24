@@ -60,7 +60,7 @@ export function connectPanePty(
         Boolean(
           state.tabsByWorktree[deps.worktreeId]?.some(
             (candidate) => candidate.id === candidateId
-          ) ??
+          ) ||
           (initialOwnerWorktreeId
             ? state.tabsByWorktree[initialOwnerWorktreeId]?.some(
                 (candidate) => candidate.id === candidateId

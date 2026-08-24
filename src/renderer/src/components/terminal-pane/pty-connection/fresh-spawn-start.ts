@@ -107,7 +107,7 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
               Boolean(
                 state.tabsByWorktree[session.deps.worktreeId]?.some(
                   (candidate) => candidate.id === candidateId
-                ) ??
+                ) ||
                 (initialOwnerWorktreeId
                   ? state.tabsByWorktree[initialOwnerWorktreeId]?.some(
                       (candidate) => candidate.id === candidateId
