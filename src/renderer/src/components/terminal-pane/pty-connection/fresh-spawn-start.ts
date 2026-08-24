@@ -108,8 +108,13 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
                 (candidate) => candidate.id === session.deps.tabId
               )
             : undefined)
+        const fallbackTab = Object.values(state.tabsByWorktree)
+          .find((tabs) => tabs.some((candidate) => candidate.id === session.deps.tabId))
+          ?.find((candidate) => candidate.id === session.deps.tabId)
         const currentTab =
-          terminalTab ?? (unifiedTab && 'generation' in unifiedTab ? unifiedTab : null)
+          terminalTab ??
+          fallbackTab ??
+          (unifiedTab && 'generation' in unifiedTab ? unifiedTab : null)
         return !session.disposed && (currentTab?.generation ?? 0) === session.tabGeneration
       },
       callbacks: outputCallbacks.callbacks

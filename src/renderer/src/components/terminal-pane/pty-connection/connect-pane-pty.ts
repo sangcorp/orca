@@ -56,7 +56,11 @@ export function connectPanePty(
     state.tabsByWorktree[deps.worktreeId]?.find((candidate) => candidate.id === deps.tabId) ??
     (ownerWorktreeId
       ? state.tabsByWorktree[ownerWorktreeId]?.find((candidate) => candidate.id === deps.tabId)
-      : undefined)
+      : undefined) ??
+    // Why: folder/worktree migrations can leave the pane's render key stale for one commit.
+    Object.values(state.tabsByWorktree)
+      .find((tabs) => tabs.some((candidate) => candidate.id === deps.tabId))
+      ?.find((candidate) => candidate.id === deps.tabId)
   const tab = terminalTab ?? (unifiedTab && 'generation' in unifiedTab ? unifiedTab : null)
   session.tabGeneration = tab?.generation ?? 0
   // Why: recovery ownership belongs to this xterm instance. A request that
