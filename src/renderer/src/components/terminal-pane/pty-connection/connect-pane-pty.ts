@@ -51,9 +51,14 @@ export function connectPanePty(
     !session.manager.hasWebglRenderer(session.pane.id)
   const state = useAppStore.getState()
   const unifiedTab = state.getTab?.(deps.tabId)
-  const tab =
-    (unifiedTab && 'generation' in unifiedTab ? unifiedTab : null) ??
-    state.tabsByWorktree[deps.worktreeId]?.find((candidate) => candidate.id === deps.tabId)
+  const terminalTab =
+    state.tabsByWorktree[deps.worktreeId]?.find((candidate) => candidate.id === deps.tabId) ??
+    (unifiedTab
+      ? state.tabsByWorktree[unifiedTab.worktreeId]?.find(
+          (candidate) => candidate.id === deps.tabId
+        )
+      : undefined)
+  const tab = terminalTab ?? (unifiedTab && 'generation' in unifiedTab ? unifiedTab : null)
   session.tabGeneration = tab?.generation ?? 0
   // Why: recovery ownership belongs to this xterm instance. A request that
   // settles after remount must not remount its already-replaced successor.
