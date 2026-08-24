@@ -166,8 +166,9 @@ describe('connectPanePty', () => {
   it('does not hold a successor behind a canceled spawn serializer declaration', async () => {
     const { connectPanePty } = await import('./pty-connection')
     const declaration = createDeferred<number>()
+    const spawn = createDeferred<null>()
     const transport = createMockTransport()
-    transport.connect.mockResolvedValueOnce(null)
+    transport.connect.mockReturnValueOnce(spawn.promise)
     transportFactoryQueue.push(transport)
     mockStoreState = {
       ...mockStoreState,
@@ -176,7 +177,14 @@ describe('connectPanePty', () => {
     }
     vi.mocked(window.api.pty.declarePendingPaneSerializer).mockReturnValueOnce(declaration.promise)
 
-    connectPanePty(createPane(1) as never, createManager(1) as never, createDeps() as never)
+    const binding = connectPanePty(
+      createPane(1) as never,
+      createManager(1) as never,
+      createDeps() as never
+    )
+    await flushAsyncTicks(12)
+    binding.dispose()
+    spawn.resolve(null)
     await flushAsyncTicks(12)
 
     expect(pendingSpawnByPaneKey.size).toBe(0)

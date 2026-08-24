@@ -107,10 +107,7 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
       .then(async (spawnedPtyId) => {
         if (outputCallbacks.generation !== session.transportStreamGeneration) {
           session.finishReattachLiveDataDeferral(false, outputCallbacks.generation)
-          const gen = await preSignalPromise
-          if (typeof gen === 'number') {
-            void window.api.pty.clearPendingPaneSerializer(session.cacheKey, gen).catch(() => {})
-          }
+          clearPreSignaledSerializer()
           return null
         }
         const resolvedPtyId =
@@ -123,10 +120,7 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
           session.finishReattachLiveDataDeferral(false, outputCallbacks.generation)
           // Why: an outstanding declare keeps main's cooperation gate suppressing
           // this paneKey's daemon-snapshot seed until something releases it.
-          const gen = await preSignalPromise
-          if (typeof gen === 'number') {
-            void window.api.pty.clearPendingPaneSerializer(session.cacheKey, gen).catch(() => {})
-          }
+          clearPreSignaledSerializer()
           return null
         }
         const connectResult =
