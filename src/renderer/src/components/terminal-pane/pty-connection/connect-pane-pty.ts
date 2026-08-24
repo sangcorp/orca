@@ -74,7 +74,8 @@ export function connectPanePty(
     },
     deps.tabId
   )
-  const ownerWorktreeId = state.getTerminalTabOwnerWorktreeId?.(terminalTabId)
+  const ownerWorktreeId =
+    state.getTerminalTabOwnerWorktreeId?.(terminalTabId) ?? initialOwnerWorktreeId
   const terminalTab =
     state.tabsByWorktree[deps.worktreeId]?.find((candidate) => candidate.id === terminalTabId) ??
     (ownerWorktreeId

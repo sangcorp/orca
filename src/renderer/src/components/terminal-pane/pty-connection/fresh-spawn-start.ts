@@ -121,7 +121,8 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
           },
           session.deps.tabId
         )
-        const ownerWorktreeId = state.getTerminalTabOwnerWorktreeId?.(terminalTabId)
+        const ownerWorktreeId =
+          state.getTerminalTabOwnerWorktreeId?.(terminalTabId) ?? initialOwnerWorktreeId
         const terminalTab =
           state.tabsByWorktree[session.deps.worktreeId]?.find(
             (candidate) => candidate.id === terminalTabId
