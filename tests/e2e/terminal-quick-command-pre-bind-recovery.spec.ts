@@ -232,6 +232,7 @@ process.stdout.write(${JSON.stringify(`${marker}\n`)})
       try {
         await expect
           .poll(successorReady, {
+            timeout: 60_000,
             message: 'Successor mount did not bind its fresh Quick Command PTY'
           })
           .toEqual({
