@@ -204,36 +204,52 @@ process.stdout.write(${JSON.stringify(`${marker}\n`)})
 
       let targetPtyId = ''
       let targetLeafId = ''
-      await expect
-        .poll(
-          () =>
-            orcaPage.evaluate(
-              ({ expectedGeneration, tabId }) => {
-                const state = window.__store?.getState()
-                const manager = window.__paneManagers?.get(tabId)
-                const pane = manager?.getPanes()[0]
-                const tab = state?.tabsByWorktree[state.activeWorktreeId ?? '']?.find(
-                  (candidate) => candidate.id === tabId
-                )
-                return {
-                  generation: tab?.generation ?? 0,
-                  leafReady: Boolean(pane?.leafId),
-                  pending: state?.pendingStartupByTabId[tabId]?.command ?? null,
-                  ptyReady: Boolean(pane?.container.dataset.ptyId),
-                  expectedGeneration
-                }
-              },
-              { expectedGeneration: blocked.generation + 1, tabId: blocked.tabId }
-            ),
-          { message: 'Successor mount did not bind its fresh Quick Command PTY' }
+      const successorReady = (): Promise<{
+        generation: number
+        leafReady: boolean
+        pending: string | null
+        ptyReady: boolean
+        expectedGeneration: number
+      }> =>
+        orcaPage.evaluate(
+          ({ expectedGeneration, tabId }) => {
+            const state = window.__store?.getState()
+            const manager = window.__paneManagers?.get(tabId)
+            const pane = manager?.getPanes()[0]
+            const tab = state?.tabsByWorktree[state.activeWorktreeId ?? '']?.find(
+              (candidate) => candidate.id === tabId
+            )
+            return {
+              generation: tab?.generation ?? 0,
+              leafReady: Boolean(pane?.leafId),
+              pending: state?.pendingStartupByTabId[tabId]?.command ?? null,
+              ptyReady: Boolean(pane?.container.dataset.ptyId),
+              expectedGeneration
+            }
+          },
+          { expectedGeneration: blocked.generation + 1, tabId: blocked.tabId }
         )
-        .toEqual({
-          generation: blocked.generation + 1,
-          leafReady: true,
-          pending: null,
-          ptyReady: true,
-          expectedGeneration: blocked.generation + 1
-        })
+      try {
+        await expect
+          .poll(successorReady, {
+            message: 'Successor mount did not bind its fresh Quick Command PTY'
+          })
+          .toEqual({
+            generation: blocked.generation + 1,
+            leafReady: true,
+            pending: null,
+            ptyReady: true,
+            expectedGeneration: blocked.generation + 1
+          })
+      } catch (error) {
+        const diagnostics = await orcaPage.evaluate(() => ({
+          ptyConnect: (window as Window & { __ptyConnectDiag?: string[] }).__ptyConnectDiag ?? [],
+          barrier: window.__terminalPtyPreSpawnE2EBarrier?.status() ?? 'missing'
+        }))
+        throw new Error(
+          `${error instanceof Error ? error.message : String(error)}\nDiagnostics: ${JSON.stringify(diagnostics)}`
+        )
+      }
 
       const successor = await orcaPage.evaluate((tabId) => {
         const pane = window.__paneManagers?.get(tabId)?.getPanes()[0]
