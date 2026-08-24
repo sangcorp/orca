@@ -815,6 +815,9 @@ export function createIpcPtyTransport(opts: IpcPtyTransportOptions = {}): PtyTra
             return
           }
         }
+        if (options.shouldContinue && !options.shouldContinue()) {
+          return
+        }
         // Why: cwd fallback is only for fresh local spawns — reattach keeps the session's cwd and SSH transports resolve cwd on the remote host.
         const shouldSendLocalCwdFallback =
           cwdFallback === 'worktree' && !connectionId && !admittedSessionId

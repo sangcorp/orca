@@ -1,4 +1,5 @@
 import type { PaneManager, ManagedPane } from '@/lib/pane-manager/pane-manager'
+import { useAppStore } from '@/store'
 import { TerminalKittyKeyboardModeTracker } from '../../../../../shared/terminal-kitty-keyboard-mode-tracker'
 import type { PtyConnectionDeps } from '../pty-connection-types'
 import {
@@ -48,6 +49,10 @@ export function connectPanePty(
   const session = { pane, manager, deps } as ConnectPanePtySession
   session.shouldRefreshForegroundSynchronously = (): boolean =>
     !session.manager.hasWebglRenderer(session.pane.id)
+  const tab = Object.values(useAppStore.getState().tabsByWorktree)
+    .flat()
+    .find((candidate) => candidate.id === deps.tabId)
+  session.tabGeneration = tab?.generation ?? 0
   // Why: recovery ownership belongs to this xterm instance. A request that
   // settles after remount must not remount its already-replaced successor.
   session.terminalRecoveryGeneration = captureTerminalPaneRecoveryGeneration(session.deps.tabId)
