@@ -14,6 +14,7 @@ import type {
 } from './fresh-spawn-types'
 
 import type { ConnectPanePtySession } from './connect-pane-pty-session'
+import { resolveTerminalTabId } from './terminal-tab-id'
 
 export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
   session.startFreshSpawn = (
@@ -98,19 +99,20 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
       shouldContinue: () => {
         const state = useAppStore.getState()
         const unifiedTab = state.getTab?.(session.deps.tabId)
-        const ownerWorktreeId = state.getTerminalTabOwnerWorktreeId?.(session.deps.tabId)
+        const terminalTabId = resolveTerminalTabId(state, session.deps.tabId)
+        const ownerWorktreeId = state.getTerminalTabOwnerWorktreeId?.(terminalTabId)
         const terminalTab =
           state.tabsByWorktree[session.deps.worktreeId]?.find(
-            (candidate) => candidate.id === session.deps.tabId
+            (candidate) => candidate.id === terminalTabId
           ) ??
           (ownerWorktreeId
             ? state.tabsByWorktree[ownerWorktreeId]?.find(
-                (candidate) => candidate.id === session.deps.tabId
+                (candidate) => candidate.id === terminalTabId
               )
             : undefined)
         const fallbackTab = Object.values(state.tabsByWorktree)
-          .find((tabs) => tabs.some((candidate) => candidate.id === session.deps.tabId))
-          ?.find((candidate) => candidate.id === session.deps.tabId)
+          .find((tabs) => tabs.some((candidate) => candidate.id === terminalTabId))
+          ?.find((candidate) => candidate.id === terminalTabId)
         const currentTab =
           terminalTab ??
           fallbackTab ??

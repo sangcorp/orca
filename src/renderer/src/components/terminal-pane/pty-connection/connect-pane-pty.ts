@@ -36,6 +36,7 @@ import { installPtyInputRecovery } from './pty-input-recovery'
 import { installPtyInputForward } from './pty-input-forward'
 import { installPtyResizeGeometry } from './pty-resize-geometry'
 import { installSessionReconcileDispose } from './session-reconcile-dispose'
+import { resolveTerminalTabId } from './terminal-tab-id'
 
 /**
  * Establishes a binding between a terminal pane and its corresponding PTY stream,
@@ -51,16 +52,17 @@ export function connectPanePty(
     !session.manager.hasWebglRenderer(session.pane.id)
   const state = useAppStore.getState()
   const unifiedTab = state.getTab?.(deps.tabId)
-  const ownerWorktreeId = state.getTerminalTabOwnerWorktreeId?.(deps.tabId)
+  const terminalTabId = resolveTerminalTabId(state, deps.tabId)
+  const ownerWorktreeId = state.getTerminalTabOwnerWorktreeId?.(terminalTabId)
   const terminalTab =
-    state.tabsByWorktree[deps.worktreeId]?.find((candidate) => candidate.id === deps.tabId) ??
+    state.tabsByWorktree[deps.worktreeId]?.find((candidate) => candidate.id === terminalTabId) ??
     (ownerWorktreeId
-      ? state.tabsByWorktree[ownerWorktreeId]?.find((candidate) => candidate.id === deps.tabId)
+      ? state.tabsByWorktree[ownerWorktreeId]?.find((candidate) => candidate.id === terminalTabId)
       : undefined) ??
     // Why: folder/worktree migrations can leave the pane's render key stale for one commit.
     Object.values(state.tabsByWorktree)
-      .find((tabs) => tabs.some((candidate) => candidate.id === deps.tabId))
-      ?.find((candidate) => candidate.id === deps.tabId)
+      .find((tabs) => tabs.some((candidate) => candidate.id === terminalTabId))
+      ?.find((candidate) => candidate.id === terminalTabId)
   const tab = terminalTab ?? (unifiedTab && 'generation' in unifiedTab ? unifiedTab : null)
   session.tabGeneration = tab?.generation ?? 0
   // Why: recovery ownership belongs to this xterm instance. A request that
