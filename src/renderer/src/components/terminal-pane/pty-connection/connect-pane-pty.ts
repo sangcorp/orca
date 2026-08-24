@@ -51,12 +51,11 @@ export function connectPanePty(
     !session.manager.hasWebglRenderer(session.pane.id)
   const state = useAppStore.getState()
   const unifiedTab = state.getTab?.(deps.tabId)
+  const ownerWorktreeId = state.getTerminalTabOwnerWorktreeId?.(deps.tabId)
   const terminalTab =
     state.tabsByWorktree[deps.worktreeId]?.find((candidate) => candidate.id === deps.tabId) ??
-    (unifiedTab
-      ? state.tabsByWorktree[unifiedTab.worktreeId]?.find(
-          (candidate) => candidate.id === deps.tabId
-        )
+    (ownerWorktreeId
+      ? state.tabsByWorktree[ownerWorktreeId]?.find((candidate) => candidate.id === deps.tabId)
       : undefined)
   const tab = terminalTab ?? (unifiedTab && 'generation' in unifiedTab ? unifiedTab : null)
   session.tabGeneration = tab?.generation ?? 0
