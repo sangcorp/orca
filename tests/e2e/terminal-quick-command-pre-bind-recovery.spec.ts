@@ -168,6 +168,38 @@ process.stdout.write(${JSON.stringify(`${marker}\n`)})
         return state.remountTerminalTabForRecovery(tabId)
       }, blocked.tabId)
       expect(remounted).toBe(true)
+
+      // Keep the original pre-spawn attempt gated until React has committed the
+      // successor pane. Releasing earlier lets a loaded CI renderer finish the
+      // old mount's teardown before the replacement reaches its connect path.
+      await expect
+        .poll(
+          () =>
+            orcaPage.evaluate(
+              ({ expectedGeneration, tabId }) => {
+                const state = window.__store?.getState()
+                const manager = window.__paneManagers?.get(tabId)
+                const pane = manager?.getPanes()[0]
+                const tab = state?.tabsByWorktree[state.activeWorktreeId ?? '']?.find(
+                  (candidate) => candidate.id === tabId
+                )
+                return {
+                  generation: tab?.generation ?? 0,
+                  leafReady: Boolean(pane?.leafId),
+                  pending: state?.pendingStartupByTabId[tabId]?.command ?? null,
+                  expectedGeneration
+                }
+              },
+              { expectedGeneration: blocked.generation + 1, tabId: blocked.tabId }
+            ),
+          { message: 'Successor mount did not become ready before barrier release' }
+        )
+        .toEqual({
+          generation: blocked.generation + 1,
+          leafReady: true,
+          pending: staged.command,
+          expectedGeneration: blocked.generation + 1
+        })
       await orcaPage.evaluate(() => window.__terminalPtyPreSpawnE2EBarrier?.release())
 
       let targetPtyId = ''
