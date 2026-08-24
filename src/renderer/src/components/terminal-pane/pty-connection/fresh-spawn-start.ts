@@ -99,7 +99,24 @@ export function bindStartFreshSpawn(session: ConnectPanePtySession): void {
       shouldContinue: () => {
         const state = useAppStore.getState()
         const unifiedTab = state.getTab?.(session.deps.tabId)
-        const terminalTabId = resolveTerminalTabId(state, session.deps.tabId)
+        const initialOwnerWorktreeId = state.getTerminalTabOwnerWorktreeId?.(session.deps.tabId)
+        const terminalTabId = resolveTerminalTabId(
+          {
+            getTab: state.getTab,
+            hasTerminalTab: (candidateId) =>
+              Boolean(
+                state.tabsByWorktree[session.deps.worktreeId]?.some(
+                  (candidate) => candidate.id === candidateId
+                ) ??
+                (initialOwnerWorktreeId
+                  ? state.tabsByWorktree[initialOwnerWorktreeId]?.some(
+                      (candidate) => candidate.id === candidateId
+                    )
+                  : false)
+              )
+          },
+          session.deps.tabId
+        )
         const ownerWorktreeId = state.getTerminalTabOwnerWorktreeId?.(terminalTabId)
         const terminalTab =
           state.tabsByWorktree[session.deps.worktreeId]?.find(

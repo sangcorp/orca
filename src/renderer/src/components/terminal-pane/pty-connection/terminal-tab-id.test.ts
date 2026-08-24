@@ -18,4 +18,16 @@ describe('resolveTerminalTabId', () => {
     ).toBe('editor-tab')
     expect(resolveTerminalTabId({}, 'legacy-tab')).toBe('legacy-tab')
   })
+
+  it('keeps an exact terminal owner ahead of a stale unified alias', () => {
+    expect(
+      resolveTerminalTabId(
+        {
+          getTab: () => ({ contentType: 'terminal', entityId: 'old-owner' }),
+          hasTerminalTab: (tabId) => tabId === 'live-owner'
+        },
+        'live-owner'
+      )
+    ).toBe('live-owner')
+  })
 })
