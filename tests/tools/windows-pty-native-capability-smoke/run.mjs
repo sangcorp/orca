@@ -4,6 +4,8 @@ import { pathToFileURL } from 'node:url'
 import { assertPackagedNodePtyCapability } from './packaged-node-pty-capability-oracle.mjs'
 
 const EVIDENCE_PREFIX = 'ORCA_NODE_PTY_CAPABILITY_EVIDENCE='
+const PROBE_TIMEOUT_MS = 45_000
+const MAX_DIAGNOSTIC_CHARS = 8_000
 
 function executableArgument(argv) {
   const value = argv.find((arg) => arg.startsWith('--exe='))?.slice('--exe='.length)
@@ -23,10 +25,22 @@ export function packagedProbeInvocation(executable, environment = process.env) {
   const probe = path.join(import.meta.dirname, 'packaged-node-pty-capability-probe.cjs')
   return {
     program: resolvedExecutable,
-    args: [probe, '--exercise', resourcesDir],
+    args: [probe, '--exercise', resourcesDir, process.execPath],
     env: { ...environment, ELECTRON_RUN_AS_NODE: '1' },
-    timeoutMs: 120_000
+    timeoutMs: PROBE_TIMEOUT_MS
   }
+}
+
+function diagnosticTail(value) {
+  return value.length <= MAX_DIAGNOSTIC_CHARS ? value : value.slice(-MAX_DIAGNOSTIC_CHARS)
+}
+
+export function formatProbeFailure(result) {
+  return [
+    `packaged native capability probe failed (code=${result.code}, timedOut=${result.timedOut})`,
+    `stdout:\n${diagnosticTail(result.stdout) || '<empty>'}`,
+    `stderr:\n${diagnosticTail(result.stderr) || '<empty>'}`
+  ].join('\n')
 }
 
 function parseEvidence(stdout) {
@@ -46,7 +60,7 @@ async function main() {
   const { runProcess } = require(checkoutRunProcessPath())
   const result = await runProcess(packagedProbeInvocation(executable))
   if (result.code !== 0 || result.timedOut) {
-    throw new Error(`packaged native capability probe failed (${result.code}): ${result.stderr}`)
+    throw new Error(formatProbeFailure(result))
   }
 
   assertPackagedNodePtyCapability(parseEvidence(result.stdout))

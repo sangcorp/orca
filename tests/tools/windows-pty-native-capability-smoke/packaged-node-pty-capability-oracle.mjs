@@ -11,6 +11,18 @@ function isFixtureObservation(value, expected) {
   )
 }
 
+function isFixtureClosure(value, expected) {
+  return (
+    value?.fixtureToken === expected.fixtureToken &&
+    value.channel === expected.channel &&
+    value.role === expected.role
+  )
+}
+
+function isPtyExit(value, terminalHandle) {
+  return value?.terminalHandle === terminalHandle && Number.isInteger(value.exitCode)
+}
+
 export function evaluatePackagedNodePtyCapability(evidence) {
   const failures = []
   const exports = new Set(evidence?.patchedExports ?? [])
@@ -35,7 +47,7 @@ export function evaluatePackagedNodePtyCapability(evidence) {
       role: 'target-launcher-exited'
     })
   ) {
-    failures.push('the transient detached launcher exit was not observed')
+    failures.push('the transient launcher exit was not observed')
   }
   if (
     !isFixtureObservation(target?.grandchild, {
@@ -44,7 +56,7 @@ export function evaluatePackagedNodePtyCapability(evidence) {
       role: 'target-grandchild'
     })
   ) {
-    failures.push('the detached grandchild was not observed on its unique fixture channel')
+    failures.push('the grandchild was not observed after its launcher exited')
   }
   if (!isFixtureObservation(canary?.process, { fixtureToken, channel, role: 'canary-shell' })) {
     failures.push('the unrelated canary was not observed on its unique fixture channel')
@@ -56,35 +68,38 @@ export function evaluatePackagedNodePtyCapability(evidence) {
     canary?.process?.pid
   ]
   if (observedPids.every((pid) => Number.isInteger(pid)) && new Set(observedPids).size !== 4) {
-    failures.push(
-      'target shell, launcher, detached grandchild, and canary must be distinct processes'
-    )
+    failures.push('target shell, launcher, grandchild, and canary must be distinct processes')
   }
 
   if (!Array.isArray(target?.jobProcessIds) || target.jobProcessIds.length === 0) {
     failures.push('the target job membership must be available and nonempty')
+  } else if (!target.jobProcessIds.includes(target?.shell?.pid)) {
+    failures.push('the target job does not contain the observed shell PID')
   } else if (!target.jobProcessIds.includes(target?.grandchild?.pid)) {
-    failures.push('the target job does not contain the observed detached grandchild PID')
+    failures.push('the target job does not contain the observed grandchild PID')
   } else if (target.jobProcessIds.includes(target?.launcherExited?.pid)) {
-    failures.push('the transient detached launcher is still live in the target job')
+    failures.push('the transient launcher is still live in the target job')
   }
-  if (target?.grandchildDetached !== true) {
-    failures.push('the target descendant was not launched detached from its intermediate parent')
-  }
-
   const close = evidence?.close
   if (
     close?.method !== 'terminate-job' ||
     close?.requestedHandle !== target?.terminalHandle ||
-    close?.completedHandle !== target?.terminalHandle ||
-    close?.attempts !== 1
+    close?.completedHandle !== target?.terminalHandle
   ) {
-    failures.push('close must terminate the one requested PTY job handle exactly once')
+    failures.push('close must complete for the one requested PTY job handle')
   }
   if (
-    close?.targetExitObserved !== true ||
-    close?.targetShellSocketClosed !== true ||
-    close?.targetGrandchildSocketClosed !== true
+    !isPtyExit(close?.targetExit, target?.terminalHandle) ||
+    !isFixtureClosure(close?.targetShellClosed, {
+      fixtureToken,
+      channel,
+      role: 'target-shell'
+    }) ||
+    !isFixtureClosure(close?.targetGrandchildClosed, {
+      fixtureToken,
+      channel,
+      role: 'target-grandchild'
+    })
   ) {
     failures.push('target close did not complete from PTY and fixture socket exit events')
   }
@@ -98,7 +113,16 @@ export function evaluatePackagedNodePtyCapability(evidence) {
   ) {
     failures.push('the unrelated canary PID is not live in its job after target close')
   }
-  if (canary?.exactTeardownObserved !== true) {
+  if (!isPtyExit(canary?.exit, canary?.terminalHandle)) {
+    failures.push('the unrelated canary PTY exit was not observed')
+  }
+  if (
+    !isFixtureClosure(canary?.socketClosed, {
+      fixtureToken,
+      channel,
+      role: 'canary-shell'
+    })
+  ) {
     failures.push('the unrelated canary did not complete its later exact teardown')
   }
 

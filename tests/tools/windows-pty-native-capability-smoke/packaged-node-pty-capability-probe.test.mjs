@@ -3,12 +3,16 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
+import { runProcess } from '../../../src/shared/child-process/run-process'
 
 const require = createRequire(import.meta.url)
 const probePath = require.resolve('./packaged-node-pty-capability-probe.cjs')
-const { buildDetachedGrandchildLaunch, createFixtureServer, reportFixtureObservation } = require(
-  probePath
-)
+const {
+  buildGrandchildLaunch,
+  createFixtureServer,
+  isOneShotMode,
+  reportFixtureObservation
+} = require(probePath)
 const originalSystemRoot = process.env.SystemRoot
 
 afterEach(() => {
@@ -19,19 +23,35 @@ afterEach(() => {
   }
 })
 
-describe('packaged node-pty detached launcher', () => {
+describe('packaged node-pty launcher-surviving grandchild', () => {
+  it('flushes one-shot evidence and exits despite a referenced handle', async () => {
+    expect(isOneShotMode('--exercise')).toBe(true)
+    expect(isOneShotMode('--exit-contract-fixture')).toBe(true)
+    expect(isOneShotMode('--pty-shell')).toBe(false)
+
+    const result = await runProcess({
+      program: process.execPath,
+      args: [probePath, '--exit-contract-fixture'],
+      timeoutMs: 5_000
+    })
+
+    expect(result).toMatchObject({ code: 0, timedOut: false })
+    expect(result.stdout).toBe('ORCA_ONE_SHOT_EVIDENCE=flushed\n')
+    expect(result.stderr).toBe('')
+  })
+
   it('uses the hidden WScript launcher without cmd or start/b', () => {
     process.env.SystemRoot = 'C:\\Windows'
     const channel = '\\\\.\\pipe\\fixture & literal'
 
-    const launch = buildDetachedGrandchildLaunch(channel, 'fixture-token^literal')
+    const launch = buildGrandchildLaunch(channel, 'fixture-token^literal')
 
     expect(launch.program).toMatch(/wscript\.exe$/i)
     expect(launch.args).toEqual([
       expect.stringMatching(/real-orca-detached-launcher\.vbs$/),
       process.execPath,
       probePath,
-      '--detached-member',
+      '--grandchild-member',
       channel,
       'fixture-token^literal',
       'target-grandchild'
