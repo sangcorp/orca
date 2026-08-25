@@ -72,7 +72,15 @@ async function handleStaticRequest(
   response.setHeader('Content-Length', fileStat.size)
   response.setHeader(
     'Cache-Control',
-    pathname.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache'
+    // Why no-store (not just no-cache): the HTML shell references the current
+    // build's content-hashed asset filenames, so any browser/proxy cache of it
+    // survives a rebuild and points at assets that may no longer exist —
+    // exactly the "stale UI after a restart" symptom sangai hit repeatedly.
+    // Hashed /assets/ files are safe to cache forever since a content change
+    // always gets a new filename.
+    pathname.startsWith('/assets/')
+      ? 'public, max-age=31536000, immutable'
+      : 'no-store, no-cache, must-revalidate'
   )
   if (request.method === 'HEAD') {
     response.end()
