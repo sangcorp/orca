@@ -40,7 +40,7 @@ export const BUNDLED_SKILL_GUIDES = [
     description: "Use Orca's computer-use CLI to inspect and operate local desktop app windows through accessibility trees, screenshots, and safe UI actions. Use for desktop app interaction: list apps/windows, get app state, read visible UI, click controls, type, press keys, scroll, drag, set values, or perform accessibility actions. Also use for browser windows, webviews, Orca app UI, or other desktop UI. Triggers include \"computer use\", \"orca computer\", \"read Spotify\", \"read Slack\", \"control/click/read in a desktop app\", and \"get app state\".",
     markdown: COMPUTER_USE_MARKDOWN,
     fullMarkdown: COMPUTER_USE_MARKDOWN,
-    aliases: []
+    aliases: ["sangai-orca-computer-use"]
   },
   {
     name: "linear-tickets",
@@ -54,7 +54,7 @@ export const BUNDLED_SKILL_GUIDES = [
     description: "Use the public `orca` CLI to operate Orca-managed worktrees, folder contexts, terminals, repos, automations, artifacts, skill sharing, worktree comments, and the browser embedded inside the Orca app. Use when the user says \"$orca-cli\", \"use orca cli\", \"Orca worktree\", \"child worktree\", \"cardStatus\", \"spawn codex/claude in a worktree\", \"read/wait/send Orca terminal\", \"terminal send\", \"full handoff\", \"handover\", \"give this to another agent\", \"another worktree\", \"Orca browser\", \"orca artifacts\", \"share HTML/Markdown\", \"public artifact link\", \"share skills\", or \"control the browser inside Orca\". Prefer this over raw `git worktree`, ad hoc PTYs, Playwright, or Computer Use when the task touches Orca-managed state. Use Computer Use for browser windows, webviews, or desktop UI outside Orca's embedded browser.",
     markdown: ORCA_CLI_MARKDOWN,
     fullMarkdown: ORCA_CLI_MARKDOWN,
-    aliases: []
+    aliases: ["sangai-orca-cli"]
   },
   {
     name: "orca-emulator",
