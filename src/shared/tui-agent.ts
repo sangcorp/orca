@@ -2,6 +2,9 @@
  *  flow and for the default-agent setting. Extend this union as new agents are added. */
 export type TuiAgent =
   | 'claude' // Claude Code
+  | 'claude1' // Claude Code, sangai account 1 (bin/claude-instance)
+  | 'claude2' // Claude Code, sangai account 2 (bin/claude-instance)
+  | 'claude3' // Claude Code, sangai account 3 — 9router-backed (bin/claude-instance)
   | 'claude-agent-teams' // Claude Code Agent Teams via Orca native panes
   | 'openclaude' // OpenClaude
   | 'codex' // OpenAI Codex

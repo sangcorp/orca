@@ -15,6 +15,9 @@ type ConcreteAgentKind = Exclude<AgentKind, 'other'>
 
 const TUI_AGENT_KIND_BY_AGENT = {
   claude: 'claude-code',
+  claude1: 'claude1',
+  claude2: 'claude2',
+  claude3: 'claude3',
   'claude-agent-teams': 'claude-agent-teams',
   openclaude: 'openclaude',
   codex: 'codex',

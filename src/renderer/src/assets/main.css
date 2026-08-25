@@ -1019,6 +1019,16 @@ html.native-shell .app-layout {
   flex: 0 0 auto;
 }
 
+/* Why: full-color photo, unlike .titlebar-logo's flat SVG mark — no invert
+   filter, sized to the row's 24px height with a little clearance. */
+.titlebar-app-avatar {
+  height: 18px;
+  width: 18px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .titlebar-icon-button {
   -webkit-app-region: no-drag;
   background: none;

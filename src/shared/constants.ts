@@ -275,12 +275,26 @@ export function getDefaultSettings(homedir: string): GlobalSettings {
     sourceControlCompareAgainstUpstream: false,
     showTitlebarAppName: true,
     showTasksButton: true,
-    showAutomationsButton: true,
+    // Why false: sangai does not use Orca's Automations feature; hidden by
+    // default rather than requiring every browser to hide it by hand. The
+    // marker lets a browser that already persisted the old `true` migrate
+    // once too — see automations-visibility-settings.ts.
+    showAutomationsButton: false,
+    showAutomationsButtonDefaultedOffForAllUsers: true,
     artifactsEnabled: true,
     artifactSharingEnabled: false,
     agentSkillSharingEnabled: false,
     showArtifactsButton: false,
     showSkillsButton: false,
+    // Why on by default: the row was invisible until a browser opted in via
+    // Settings → Experimental, which read as "can't click Agent Dashboard"
+    // (there was nothing to click). In-window avoids Pop-out opening an
+    // Electron window on this host's headless Xvfb display, which no browser
+    // can ever see. The marker lets a browser that already persisted the old
+    // unset/off value migrate once too — see agent-dashboard-visibility-settings.ts.
+    experimentalAgentDashboardPopout: true,
+    experimentalAgentDashboardMode: 'in-window',
+    experimentalAgentDashboardDefaultedOnForAllUsers: true,
     showMobileButton: true,
     showPinnedWorktreesInGroups: false,
     ctrlTabOrderMode: 'mru',

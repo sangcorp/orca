@@ -1,5 +1,6 @@
 import { ArrowLeft, ArrowRight, MoreHorizontal, PanelLeft } from 'lucide-react'
 import logo from '../../../../resources/logo.svg'
+import sangaiLogo from '../../../../resources/sangai-logo.jpg'
 import { translate } from '@/i18n/i18n'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
@@ -71,10 +72,11 @@ export function TitlebarLeftControls({ layout }: { layout: AppChromeLayout }): R
             <ContextMenuTrigger asChild>
               <div
                 className="titlebar-app-name"
-                aria-label={translate('auto.App.5096cbbc86', 'Orca')}
+                aria-label={translate('auto.App.5096cbbc86', 'Workspace')}
               >
+                <img src={sangaiLogo} alt="" aria-hidden className="titlebar-app-avatar" />
                 <span className="titlebar-app-name-main">
-                  {translate('auto.App.5096cbbc86', 'Orca')}
+                  {translate('auto.App.5096cbbc86', 'Workspace')}
                 </span>
               </div>
             </ContextMenuTrigger>

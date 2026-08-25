@@ -336,6 +336,7 @@ describe('SidebarNav', () => {
   })
 
   it('updates localized labels when the language changes after mount', async () => {
+    setSidebarState({ settings: { ...getDefaultSettings('/tmp'), showAutomationsButton: true } })
     const container = await renderSidebarNav()
 
     expect(queryButtonByText(container, 'Automations')).not.toBeNull()
@@ -350,6 +351,7 @@ describe('SidebarNav', () => {
   })
 
   it('updates labels when pseudo-localization is enabled after mount', async () => {
+    setSidebarState({ settings: { ...getDefaultSettings('/tmp'), showAutomationsButton: true } })
     const container = await renderSidebarNav()
 
     await act(async () => {
@@ -404,6 +406,7 @@ describe('SidebarNav', () => {
   })
 
   it('hides Automations from its sidebar context menu', async () => {
+    setSidebarState({ settings: { ...getDefaultSettings('/tmp'), showAutomationsButton: true } })
     const container = await renderSidebarNav()
 
     const automationsMenu = getButtonByText(container, 'Automations').closest(

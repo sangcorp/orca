@@ -93,6 +93,8 @@ import {
 } from '../../../shared/tui-agent-launch-defaults'
 import { normalizeAutoRenameBranchFromWorkDefaultOn } from '../../../shared/auto-rename-branch-from-work-settings'
 import { normalizeTerminalCursorStyleDefault } from '../../../shared/terminal-cursor-style-settings'
+import { normalizeAutomationsVisibilityDefault } from '../../../shared/automations-visibility-settings'
+import { normalizeAgentDashboardVisibilityDefault } from '../../../shared/agent-dashboard-visibility-settings'
 import {
   normalizeOsc52ClipboardDefaultOn,
   osc52ClipboardDefaultOnOverridesPersistedOff
@@ -887,6 +889,7 @@ function createWebPreloadApi(): Partial<PreloadApi> {
     gl: createGitLabApi(),
     hostedReview: createRuntimeNamespaceApi('hostedReview'),
     linear: createRuntimeNamespaceApi('linear'),
+    jira: createRuntimeNamespaceApi('jira'), // never wired for web; silently no-op'd every call
     hooks: createHooksApi(),
     stats: {
       getSummary: async () =>
@@ -3819,6 +3822,8 @@ function getStoredSettings(): GlobalSettings {
     ...normalizeAutoRenameBranchFromWorkDefaultOn(stored),
     ...normalizeTerminalCursorStyleDefault(stored),
     ...normalizeOsc52ClipboardDefaultOn(stored),
+    ...normalizeAutomationsVisibilityDefault(stored),
+    ...normalizeAgentDashboardVisibilityDefault(stored),
     terminalCustomThemes: normalizeTerminalCustomThemes(stored.terminalCustomThemes),
     uiLanguage: normalizeUiLanguage(stored.uiLanguage)
   }
@@ -3835,6 +3840,13 @@ function getStoredSettings(): GlobalSettings {
       stored.terminalAllowOsc52Clipboard !== migratedStored.terminalAllowOsc52Clipboard ||
       stored.terminalAllowOsc52ClipboardDefaultedOnForAllUsers !==
         migratedStored.terminalAllowOsc52ClipboardDefaultedOnForAllUsers ||
+      stored.showAutomationsButton !== migratedStored.showAutomationsButton ||
+      stored.showAutomationsButtonDefaultedOffForAllUsers !==
+        migratedStored.showAutomationsButtonDefaultedOffForAllUsers ||
+      stored.experimentalAgentDashboardPopout !== migratedStored.experimentalAgentDashboardPopout ||
+      stored.experimentalAgentDashboardMode !== migratedStored.experimentalAgentDashboardMode ||
+      stored.experimentalAgentDashboardDefaultedOnForAllUsers !==
+        migratedStored.experimentalAgentDashboardDefaultedOnForAllUsers ||
       stored.terminalCustomThemes !== migratedStored.terminalCustomThemes ||
       stored.uiLanguage !== migratedStored.uiLanguage)
   ) {

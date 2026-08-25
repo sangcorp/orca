@@ -688,6 +688,21 @@ function DefaultAgentPill({
   )
 }
 
+// Why: scope the Installed/Not detected lists to sangai's own provider set —
+// Orca's broader catalog (Claude Agent Teams, exotic third-party agents) stays
+// registered for other surfaces, just not shown here.
+const SANGAI_PROVIDER_AGENTS: readonly TuiAgent[] = [
+  'claude',
+  'claude1',
+  'claude2',
+  'claude3',
+  'codex',
+  'cursor',
+  'antigravity',
+  'opencode',
+  'hermes'
+]
+
 export function AgentsPane({
   settings,
   updateSettings,
@@ -799,12 +814,16 @@ export function AgentsPane({
   // Showing the full catalog here makes the default-agent picker flash invalid
   // options while switching between Windows and WSL detection contexts.
   const detectedAgents =
-    detectedIds === null ? [] : getAgentCatalog().filter((agent) => detectedIds.has(agent.id))
+    detectedIds === null
+      ? []
+      : getAgentCatalog().filter(
+          (agent) => SANGAI_PROVIDER_AGENTS.includes(agent.id) && detectedIds.has(agent.id)
+        )
   const enabledDetectedAgents = detectedAgents.filter((agent) =>
     isTuiAgentEnabled(agent.id, disabledAgents)
   )
   const undetectedAgents = getAgentCatalog().filter(
-    (a) => detectedIds !== null && !detectedIds.has(a.id)
+    (a) => SANGAI_PROVIDER_AGENTS.includes(a.id) && detectedIds !== null && !detectedIds.has(a.id)
   )
 
   // Why only `=== null`: the pill's own handler writes null, so lighting it up

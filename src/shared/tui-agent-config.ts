@@ -1,5 +1,6 @@
 import type { TuiAgent } from './tui-agent'
 import { getOrcaCliCommandNameForPlatform } from './orca-cli-command-name'
+import { SANGAI_CLAUDE_ACCOUNT_CONFIGS } from './sangai-claude-account-agents'
 
 export type AgentPromptInjectionMode =
   | 'argv'
@@ -59,6 +60,7 @@ export const TUI_AGENT_CONFIG: Record<TuiAgent, TuiAgentConfig> = {
     // Why: `claude --prefill <text>` seeds the input without submitting, avoiding the paste-after-ready race (PR https://github.com/stablyai/orca/pull/926).
     draftPromptFlag: '--prefill'
   },
+  ...SANGAI_CLAUDE_ACCOUNT_CONFIGS,
   'claude-agent-teams': {
     // Why: an Orca-provided launch mode, not a separate binary; detection follows the Orca CLI.
     detectCmd: 'orca',

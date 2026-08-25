@@ -51,6 +51,24 @@ export const getAgentCatalog = createLocalizedCatalog((): AgentCatalogEntry[] =>
     homepageUrl: 'https://code.claude.com/docs'
   },
   {
+    id: 'claude1',
+    label: 'claude1',
+    cmd: 'claude1',
+    homepageUrl: 'https://code.claude.com/docs'
+  },
+  {
+    id: 'claude2',
+    label: 'claude2',
+    cmd: 'claude2',
+    homepageUrl: 'https://code.claude.com/docs'
+  },
+  {
+    id: 'claude3',
+    label: 'claude3',
+    cmd: 'claude3',
+    homepageUrl: 'https://code.claude.com/docs'
+  },
+  {
     id: 'claude-agent-teams',
     label: translate('auto.lib.agent.catalog.bf53f09bf8', 'Claude Agent Teams'),
     cmd: getTuiAgentLaunchCommand(TUI_AGENT_CONFIG['claude-agent-teams'], getCatalogPlatform()),
@@ -330,7 +348,13 @@ export function AgentIcon({
   if (!agent) {
     return <AgentLetterIcon letter="?" size={size} />
   }
-  if (agent === 'claude' || agent === 'claude-agent-teams') {
+  if (
+    agent === 'claude' ||
+    agent === 'claude1' ||
+    agent === 'claude2' ||
+    agent === 'claude3' ||
+    agent === 'claude-agent-teams'
+  ) {
     return <ClaudeIcon size={size} />
   }
   if (agent === 'codex') {

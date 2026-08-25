@@ -99,6 +99,9 @@ export { formatAgentTypeLabel } from '../../../shared/agent-type-label'
 // Why: Record<TuiAgent, true> (not a Set) forces a build error if a TuiAgent member is added without being listed here.
 const ICONABLE_AGENT_TYPES: Record<TuiAgent, true> = {
   claude: true,
+  claude1: true,
+  claude2: true,
+  claude3: true,
   'claude-agent-teams': true,
   openclaude: true,
   codex: true,

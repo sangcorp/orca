@@ -224,6 +224,8 @@ export type GlobalSettings = {
   showTasksButton: boolean
   /** Only toggles the sidebar shortcut; Automations stay reachable from Settings/View menu. */
   showAutomationsButton?: boolean
+  /** One-shot migration guard for defaulting Automations off; later explicit opt-ins persist normally. */
+  showAutomationsButtonDefaultedOffForAllUsers?: boolean
   /** Deprecated: Artifacts are always available. Use showArtifactsButton for sidebar visibility. */
   artifactsEnabled?: boolean
   /** Capability gate for agent-driven publishing; off until granted, enforced in main, not just the UI. */
@@ -416,6 +418,8 @@ export type GlobalSettings = {
   experimentalAgentDashboardMode?: AgentDashboardMode
   /** Includes stale quiet agents as a fourth Agent Dashboard column. */
   experimentalAgentDashboardShowIdle?: boolean
+  /** One-shot migration guard for defaulting the Agent Dashboard sidebar entry on, in-window; later explicit opt-outs persist normally. */
+  experimentalAgentDashboardDefaultedOnForAllUsers?: boolean
   /** One-shot migration guard for defaulting the Agents view off; later explicit opt-ins persist normally. */
   experimentalActivityDefaultedOffForAllUsers?: boolean
   /** Experimental: persistent terminal-pane attention ring for bell + agent-completion events. Opt-in while tuning signal/noise. */

@@ -111,8 +111,9 @@ describe('getDefaultSettings', () => {
     expect(getDefaultSettings('/tmp').experimentalEphemeralVms).toBe(false)
   })
 
-  it('keeps the agent dashboard popout disabled by default', () => {
-    expect(getDefaultSettings('/tmp').experimentalAgentDashboardPopout).toBeUndefined()
+  it('enables the agent dashboard sidebar entry, in-window, by default', () => {
+    expect(getDefaultSettings('/tmp').experimentalAgentDashboardPopout).toBe(true)
+    expect(getDefaultSettings('/tmp').experimentalAgentDashboardMode).toBe('in-window')
     expect(getDefaultSettings('/tmp').experimentalAgentDashboardShowIdle).toBeUndefined()
   })
 
