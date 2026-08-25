@@ -82,13 +82,13 @@ export const BUNDLED_SKILL_GUIDES = [
     description: "Set up, review, debug, or validate Orca per-workspace environment recipes — on-demand, disposable runtimes (cloud sandboxes, VMs, or local) created fresh for each workspace. Covers first-time setup (provider prerequisites, the reusable base snapshot, the coding-agent auth snapshot, credentials, and state), not just the per-workspace lifecycle scripts. Use to stand up per-workspace environments, fix an `environmentRecipes` entry in `orca.yaml`, scaffold provider lifecycle scripts, or resolve an `orca vm recipe doctor` failure.",
     markdown: ORCA_PER_WORKSPACE_ENV_MARKDOWN,
     fullMarkdown: ORCA_PER_WORKSPACE_ENV_MARKDOWN,
-    aliases: []
+    aliases: ["sangai-orca-per-workspace-env"]
   },
   {
     name: "orchestration",
     description: "Use Orca orchestration for structured multi-agent coordination: threaded messages, blocking ask/reply flows, task dispatch, worker_done/escalation waits, task DAGs, decision gates, coordinator loops, or decomposing work across agents. Use `orca-cli` instead for full ownership handoffs, including requests phrased as \"hand off\", \"handoff\", \"handover\", \"give this to another agent\", or \"another worktree\" when the user did not explicitly ask to supervise, monitor, wait for results, or coordinate a DAG. Use `orca-cli` for ordinary terminal control, lightweight terminal prompts, shell commands, Orca worktree management, reading or waiting on terminals, and automation of the browser embedded inside Orca. Use Computer Use for browser windows, webviews, Orca app UI, or desktop UI outside Orca's embedded browser.",
     markdown: ORCHESTRATION_MARKDOWN,
     fullMarkdown: ORCHESTRATION_MARKDOWN,
-    aliases: []
+    aliases: ["sangai-orca-orchestration"]
   }
 ] as const satisfies readonly BundledSkillGuide[]

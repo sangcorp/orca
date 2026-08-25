@@ -27,8 +27,8 @@ const GUIDE_ALIASES = {
   'orca-emulator': [],
   'orca-emulator-android': [],
   'orca-linear': [],
-  'orca-per-workspace-env': [],
-  orchestration: []
+  'orca-per-workspace-env': ['sangai-orca-per-workspace-env'],
+  orchestration: ['sangai-orca-orchestration']
 }
 
 // Why: a stubbed topic ships a hybrid discovery stub as its installable projection while
