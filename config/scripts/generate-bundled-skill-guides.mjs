@@ -21,7 +21,7 @@ const CANONICAL_GUIDE_NAMES = [
 // Why: old discovery stubs can outlive a rename indefinitely, so aliases are
 // a compatibility ledger: add entries for renames, but never remove them.
 const GUIDE_ALIASES = {
-  'computer-use': ['sangai-orca-computer-use'],
+  'computer-use': ['sangai-orca-computer-use', 'tool-orca-computer-use'],
   'linear-tickets': [],
   'orca-cli': ['sangai-orca-cli'],
   'orca-emulator': [],

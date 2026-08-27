@@ -40,7 +40,7 @@ export const BUNDLED_SKILL_GUIDES = [
     description: "Use Orca's computer-use CLI to inspect and operate local desktop app windows through accessibility trees, screenshots, and safe UI actions. Use for desktop app interaction: list apps/windows, get app state, read visible UI, click controls, type, press keys, scroll, drag, set values, or perform accessibility actions. Also use for browser windows, webviews, Orca app UI, or other desktop UI. Triggers include \"computer use\", \"orca computer\", \"read Spotify\", \"read Slack\", \"control/click/read in a desktop app\", and \"get app state\".",
     markdown: COMPUTER_USE_MARKDOWN,
     fullMarkdown: COMPUTER_USE_MARKDOWN,
-    aliases: ["sangai-orca-computer-use"]
+    aliases: ["sangai-orca-computer-use","tool-orca-computer-use"]
   },
   {
     name: "linear-tickets",
