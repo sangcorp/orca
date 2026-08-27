@@ -695,10 +695,11 @@ const SANGAI_PROVIDER_AGENTS: readonly TuiAgent[] = [
   'claude',
   'claude1',
   'claude2',
-  'claude3',
   'codex',
   'cursor',
   'antigravity',
+  'agy1',
+  'agy2',
   'opencode',
   'hermes'
 ]

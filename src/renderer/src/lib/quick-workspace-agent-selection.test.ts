@@ -16,25 +16,17 @@ describe('pickQuickWorkspaceAgent', () => {
     expect(pickQuickWorkspaceAgent(null, null, [])).toBe('claude')
     expect(pickQuickWorkspaceAgent(null, null, ['claude'])).toBe('claude1')
     expect(pickQuickWorkspaceAgent(null, null, ['claude', 'claude1'])).toBe('claude2')
-    expect(pickQuickWorkspaceAgent(null, null, ['claude', 'claude1', 'claude2'])).toBe('claude3')
-    expect(pickQuickWorkspaceAgent(null, null, ['claude', 'claude1', 'claude2', 'claude3'])).toBe(
+    expect(pickQuickWorkspaceAgent(null, null, ['claude', 'claude1', 'claude2'])).toBe(
       'claude-agent-teams'
     )
     expect(
-      pickQuickWorkspaceAgent(null, null, [
-        'claude',
-        'claude1',
-        'claude2',
-        'claude3',
-        'claude-agent-teams'
-      ])
+      pickQuickWorkspaceAgent(null, null, ['claude', 'claude1', 'claude2', 'claude-agent-teams'])
     ).toBe('openclaude')
     expect(
       pickQuickWorkspaceAgent(null, null, [
         'claude',
         'claude1',
         'claude2',
-        'claude3',
         'claude-agent-teams',
         'openclaude'
       ])

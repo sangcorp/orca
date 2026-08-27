@@ -15,7 +15,6 @@ export const SKILLS_CLI_AGENT_KEY_BY_TUI_AGENT = {
   claude: 'claude-code',
   claude1: 'claude-code',
   claude2: 'claude-code',
-  claude3: 'claude-code',
   'claude-agent-teams': 'claude-code',
   // Why: Orca states OpenClaude reads Claude-owned roots (native-chat-agent-profiles).
   openclaude: 'claude-code',
@@ -28,6 +27,8 @@ export const SKILLS_CLI_AGENT_KEY_BY_TUI_AGENT = {
   'prime-agent': null,
   gemini: 'gemini-cli',
   antigravity: 'antigravity',
+  agy1: 'antigravity',
+  agy2: 'antigravity',
   aider: null,
   goose: 'goose',
   amp: 'amp',

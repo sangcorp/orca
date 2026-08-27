@@ -162,10 +162,19 @@ export function getDefaultOnboardingState(): OnboardingState {
   }
 }
 
+// Why (sangai fork): upstream's default is `<home>/orca/workspaces`, entirely outside
+// this repo. This is the fallback `getDefaultPersistedState()` seeds from on a fresh
+// profile, a corrupt-partition recovery, or a per-host settings reset — i.e. it can
+// come back at any time, not just on first install. The sangai CLAUDE.md worktree
+// invariant requires every `repos/*` worktree to live at `data/worktrees/<repo>-<TICKET>`
+// under THIS repo, never scattered elsewhere, so the factory default itself must point
+// there rather than relying on the currently-persisted `orca-data.json` value alone
+// (which a wipe/corruption/reset bypasses). Only correct while this fork's checkout
+// stays at `~/sangai` — see CLAUDE.md's Layout section.
 function getDefaultWorkspaceDir(homeDir: string): string {
   const separator = homeDir.includes('\\') ? '\\' : '/'
   const trimmedHomeDir = homeDir.replace(/[\\/]+$/, '')
-  return [trimmedHomeDir, 'orca', 'workspaces'].join(separator)
+  return [trimmedHomeDir, 'sangai', 'data', 'worktrees'].join(separator)
 }
 
 export function getDefaultSettings(homedir: string): GlobalSettings {

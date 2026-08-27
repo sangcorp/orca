@@ -14,7 +14,7 @@ import { useShortcutKeyDetails, type ShortcutKeyComboDetails } from '@/hooks/use
 import { useMountedRef } from '@/hooks/useMountedRef'
 import logo from '../../../../resources/logo.svg'
 import { translate } from '@/i18n/i18n'
-import { hasGitHubBackedProject, type PreflightIssue } from './landing-preflight-issues'
+import type { PreflightIssue } from './landing-preflight-issues'
 import { useLandingPreflightRuntime } from './landing-preflight-runtime'
 
 type ShortcutItem = {
@@ -232,8 +232,13 @@ export default function Landing(): React.JSX.Element {
   const createTargetLabel =
     repos.length > 0 && repos.every((repo) => isGitRepoKind(repo)) ? 'Worktree' : 'Workspace'
   const hasProjects = repos.length > 0
-  const hasGitHubProject = useMemo(() => hasGitHubBackedProject(repos), [repos])
-  const showGitHubSupportFooter = repos.length === 0 || hasGitHubProject
+  // Why (sangai fork): upstream shows a "Star on GitHub" / "Open GitHub" nag here,
+  // pointed at stablyai/orca's public repo (via GitHubStarButton, gated by whether the
+  // active project has a GitHub-backed repo — hasGitHubBackedProject). Irrelevant (and
+  // mildly confusing) on this private, rebranded fork, so it's forced off rather than
+  // computed. GitHubStarButton itself is left intact — this only stops it from being
+  // mounted on the Landing page.
+  const showGitHubSupportFooter = false
 
   // Why: the runtime-aware slice probes the active remote host instead of the renderer host.
   const { preflightIssues } = useLandingPreflightRuntime()

@@ -63,12 +63,6 @@ export const getAgentCatalog = createLocalizedCatalog((): AgentCatalogEntry[] =>
     homepageUrl: 'https://code.claude.com/docs'
   },
   {
-    id: 'claude3',
-    label: 'claude3',
-    cmd: 'claude3',
-    homepageUrl: 'https://code.claude.com/docs'
-  },
-  {
     id: 'claude-agent-teams',
     label: translate('auto.lib.agent.catalog.bf53f09bf8', 'Claude Agent Teams'),
     cmd: getTuiAgentLaunchCommand(TUI_AGENT_CONFIG['claude-agent-teams'], getCatalogPlatform()),
@@ -163,6 +157,20 @@ export const getAgentCatalog = createLocalizedCatalog((): AgentCatalogEntry[] =>
     id: 'antigravity',
     label: translate('auto.lib.agent.catalog.691dd11789', 'Antigravity'),
     cmd: 'agy',
+    faviconDomain: 'antigravity.google',
+    homepageUrl: 'https://antigravity.google/docs/cli-overview'
+  },
+  {
+    id: 'agy1',
+    label: 'agy1',
+    cmd: 'agy1',
+    faviconDomain: 'antigravity.google',
+    homepageUrl: 'https://antigravity.google/docs/cli-overview'
+  },
+  {
+    id: 'agy2',
+    label: 'agy2',
+    cmd: 'agy2',
     faviconDomain: 'antigravity.google',
     homepageUrl: 'https://antigravity.google/docs/cli-overview'
   },
@@ -352,7 +360,6 @@ export function AgentIcon({
     agent === 'claude' ||
     agent === 'claude1' ||
     agent === 'claude2' ||
-    agent === 'claude3' ||
     agent === 'claude-agent-teams'
   ) {
     return <ClaudeIcon size={size} />

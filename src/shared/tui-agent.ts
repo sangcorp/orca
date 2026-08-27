@@ -4,7 +4,6 @@ export type TuiAgent =
   | 'claude' // Claude Code
   | 'claude1' // Claude Code, sangai account 1 (bin/claude-instance)
   | 'claude2' // Claude Code, sangai account 2 (bin/claude-instance)
-  | 'claude3' // Claude Code, sangai account 3 — 9router-backed (bin/claude-instance)
   | 'claude-agent-teams' // Claude Code Agent Teams via Orca native panes
   | 'openclaude' // OpenClaude
   | 'codex' // OpenAI Codex
@@ -15,6 +14,8 @@ export type TuiAgent =
   | 'omp' // OMP (omp.sh)
   | 'gemini' // Gemini CLI
   | 'antigravity' // Google Antigravity CLI
+  | 'agy1' // Antigravity, sangai instance 1 (bin/agy-instance)
+  | 'agy2' // Antigravity, sangai instance 2 (bin/agy-instance)
   | 'aider' // Aider
   | 'goose' // Goose
   | 'amp' // Amp

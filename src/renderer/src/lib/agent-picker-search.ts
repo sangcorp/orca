@@ -84,6 +84,17 @@ export function agentPickerBlankTerminalMatches(rawQuery: string): boolean {
 }
 
 function scoreAgent(agent: AgentCatalogEntry, query: string): number {
+  // Why: an exact label/id/cmd match must outrank another entry's partial match on a
+  // higher-priority field. sangai's per-instance wrappers (agy1/agy2) begin with the
+  // parent agent's own cmd (`agy`), so field-ordered base scores alone ranked agy1's
+  // label prefix-match (10) above antigravity's exact cmd match (650) for "agy".
+  if (
+    normalizeSearchText(agent.label) === query ||
+    normalizeSearchText(agent.id) === query ||
+    normalizeSearchText(agent.cmd) === query
+  ) {
+    return 0
+  }
   return Math.min(
     scoreCandidate(query, agent.label, 0),
     scoreCandidate(query, agent.id, 600),

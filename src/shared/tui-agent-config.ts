@@ -1,6 +1,9 @@
 import type { TuiAgent } from './tui-agent'
 import { getOrcaCliCommandNameForPlatform } from './orca-cli-command-name'
-import { SANGAI_CLAUDE_ACCOUNT_CONFIGS } from './sangai-claude-account-agents'
+import {
+  SANGAI_CLAUDE_ACCOUNT_CONFIGS,
+  SANGAI_ANTIGRAVITY_INSTANCE_CONFIGS
+} from './sangai-agent-config-extensions'
 
 export type AgentPromptInjectionMode =
   | 'argv'
@@ -176,6 +179,7 @@ export const TUI_AGENT_CONFIG: Record<TuiAgent, TuiAgentConfig> = {
     expectedProcess: 'agy',
     promptInjectionMode: 'flag-prompt-interactive'
   },
+  ...SANGAI_ANTIGRAVITY_INSTANCE_CONFIGS,
   aider: {
     detectCmd: 'aider',
     launchCmd: 'aider',

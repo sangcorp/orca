@@ -9,9 +9,13 @@ import {
 
 describe('getDefaultSettings', () => {
   it('uses platform-consistent separators for the default workspace directory', () => {
-    expect(getDefaultSettings('/Users/alice').workspaceDir).toBe('/Users/alice/orca/workspaces')
+    // sangai fork: defaults into this repo's data/worktrees, not upstream's
+    // <home>/orca/workspaces — see the Why comment on getDefaultWorkspaceDir.
+    expect(getDefaultSettings('/Users/alice').workspaceDir).toBe(
+      '/Users/alice/sangai/data/worktrees'
+    )
     expect(getDefaultSettings('C:\\Users\\alice').workspaceDir).toBe(
-      'C:\\Users\\alice\\orca\\workspaces'
+      'C:\\Users\\alice\\sangai\\data\\worktrees'
     )
   })
 
