@@ -1,5 +1,5 @@
 import { constants } from 'node:fs'
-import { access, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { access, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import { parse } from 'yaml'
@@ -177,10 +177,21 @@ function toPosixRelativePath(repoRoot, filePath, pathModule = path) {
 
 async function buildArtifacts(repoRoot = REPO_ROOT) {
   const guideRoot = path.join(repoRoot, 'skill-guides')
-  const sourceFiles = (await readdir(guideRoot, { withFileTypes: true }))
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
-    .map((entry) => entry.name.slice(0, -3))
-    .sort((left, right) => left.localeCompare(right, 'en'))
+  // Why: Dirent.isFile() uses lstat semantics and is false for a symlink even when it
+  // resolves to a regular file — guide sources are symlinked to the shared sangai skill
+  // repo, so a following stat() is required to see them at all.
+  const dirEntries = await readdir(guideRoot, { withFileTypes: true })
+  const sourceFiles = []
+  for (const entry of dirEntries) {
+    if (!entry.name.endsWith('.md')) {
+      continue
+    }
+    const resolvedStat = await stat(path.join(guideRoot, entry.name))
+    if (resolvedStat.isFile()) {
+      sourceFiles.push(entry.name.slice(0, -3))
+    }
+  }
+  sourceFiles.sort((left, right) => left.localeCompare(right, 'en'))
   const expectedNames = [...CANONICAL_GUIDE_NAMES].sort((left, right) =>
     left.localeCompare(right, 'en')
   )

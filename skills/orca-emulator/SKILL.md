@@ -6,6 +6,8 @@ description: >
   Prefer this over raw `npx serve-sim` or direct simctl when running agents inside Orca (the orca surface handles device scoping, helper lifecycle, and worktree context).
   Complements the orca-cli skill for terminals, worktrees, and the built-in browser.
 license: Apache-2.0
+metadata:
+  origin: forked:stablyai/orca@e2abced (skill-guides/orca-emulator.md, 2026-08-29)
 ---
 
 # Orca Emulator

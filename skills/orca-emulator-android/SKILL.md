@@ -7,6 +7,8 @@ description: >
   tree, and logcat — driving a real adb-connected device or emulator. Cross-platform
   (Windows, Linux, macOS). Complements the orca-emulator (iOS) and orca-cli skills.
 license: Apache-2.0
+metadata:
+  origin: forked:stablyai/orca@e2abced (skill-guides/orca-emulator-android.md, 2026-08-29)
 ---
 
 # Orca Emulator (Android)

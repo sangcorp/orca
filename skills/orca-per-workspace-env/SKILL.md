@@ -8,6 +8,8 @@ description: >-
   state), not just the per-workspace lifecycle scripts. Use to stand up
   per-workspace environments, fix an `environmentRecipes` entry in `orca.yaml`, scaffold
   provider lifecycle scripts, or resolve an `orca vm recipe doctor` failure.
+metadata:
+  origin: forked:stablyai/orca@e2abced (skill-guides/orca-per-workspace-env.md, 2026-08-29)
 ---
 
 # Per-Workspace Environments

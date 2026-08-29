@@ -12,6 +12,8 @@ description: >-
   PTYs, Playwright, or Computer Use when the task touches Orca-managed state.
   Use Computer Use for browser windows, webviews, or desktop UI outside Orca's
   embedded browser.
+metadata:
+  origin: forked:stablyai/orca@e2abced (skill-guides/orca-cli.md, 2026-08-29)
 ---
 
 # Orca CLI

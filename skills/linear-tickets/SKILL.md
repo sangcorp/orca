@@ -11,6 +11,8 @@ description: >-
   a Linear issue, finishing work with a PR/MR, moving Linear status, searching
   Linear issues, or creating follow-up Linear tickets. Legacy bundled alias for
   `orca-linear`; remains available for existing installs.
+metadata:
+  origin: forked:stablyai/orca@e2abced (skill-guides/linear-tickets.md, 2026-08-29)
 ---
 
 # Linear Tickets (Legacy Name)

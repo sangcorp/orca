@@ -12,6 +12,8 @@ description: >-
   worktree management, reading or waiting on terminals, and automation of the
   browser embedded inside Orca. Use Computer Use for browser windows, webviews,
   Orca app UI, or desktop UI outside Orca's embedded browser.
+metadata:
+  origin: forked:stablyai/orca@e2abced (skill-guides/orchestration.md, 2026-08-29)
 ---
 
 # Orca Orchestration

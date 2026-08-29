@@ -9,6 +9,8 @@ description: >-
   or other desktop UI. Triggers include "computer use", "orca computer", "read
   Spotify", "read Slack", "control/click/read in a desktop app", and "get app
   state".
+metadata:
+  origin: forked:stablyai/orca@e2abced (skill-guides/computer-use.md, 2026-08-29)
 ---
 
 # Computer Use
