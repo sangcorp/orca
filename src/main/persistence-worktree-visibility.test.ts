@@ -171,7 +171,7 @@ describe('Store', () => {
       externalWorktreeVisibility: 'hide',
       agentWorktreeVisibility: 'show',
       worktreeVisibilitySourcePreferences: {
-        builtIn: { claude: 'show', gsd: 'show' }
+        builtIn: { claude: 'show', gsd: 'show', sangai: 'show' }
       }
     })
 
@@ -181,7 +181,7 @@ describe('Store', () => {
       externalWorktreeVisibility: 'hide',
       agentWorktreeVisibility: 'show',
       worktreeVisibilitySourcePreferences: {
-        builtIn: { claude: 'show', gsd: 'show' }
+        builtIn: { claude: 'show', gsd: 'show', sangai: 'show' }
       }
     })
   })

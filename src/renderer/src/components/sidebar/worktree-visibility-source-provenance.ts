@@ -3,6 +3,7 @@ import type { ExternalWorktreeVisibility, Repo } from '../../../../shared/repo-t
 import type { WorktreeVisibilityDefaults } from '../../../../shared/global-settings-types'
 import { effectiveExternalWorktreeVisibility } from '../../../../shared/external-worktree-visibility'
 import {
+  BUILT_IN_WORKTREE_VISIBILITY_SOURCES,
   effectiveDefaultBuiltInWorktreeSourceVisibility,
   effectiveDefaultCustomWorktreeSourceVisibility,
   normalizeCustomWorktreeVisibilitySources,
@@ -67,8 +68,7 @@ export function listInheritedWorktreeVisibilitySources(
     ) ?? []
   )
   const sources: WorktreeVisibilitySourceRow[] = [
-    { kind: 'built-in', id: 'claude' },
-    { kind: 'built-in', id: 'gsd' },
+    ...BUILT_IN_WORKTREE_VISIBILITY_SOURCES.map(({ id }) => ({ kind: 'built-in' as const, id })),
     ...(normalizeCustomWorktreeVisibilitySources(defaults.customSources) ?? []).map((source) => ({
       kind: 'custom' as const,
       source

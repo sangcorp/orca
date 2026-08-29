@@ -5,6 +5,7 @@ import type {
 } from '../repo-types'
 import type { WorktreeVisibilityDefaults } from '../global-settings-types'
 import {
+  BUILT_IN_WORKTREE_VISIBILITY_SOURCES,
   normalizeWorktreeVisibilitySourcePreferences,
   type WorktreeVisibilitySourceMatch
 } from './visibility-sources'
@@ -13,7 +14,9 @@ function legacyBuiltInPreferences(
   repo: Pick<Repo, 'agentWorktreeVisibility'>
 ): WorktreeVisibilitySourcePreferences['builtIn'] {
   return repo.agentWorktreeVisibility
-    ? { claude: repo.agentWorktreeVisibility, gsd: repo.agentWorktreeVisibility }
+    ? Object.fromEntries(
+        BUILT_IN_WORKTREE_VISIBILITY_SOURCES.map(({ id }) => [id, repo.agentWorktreeVisibility])
+      )
     : {}
 }
 

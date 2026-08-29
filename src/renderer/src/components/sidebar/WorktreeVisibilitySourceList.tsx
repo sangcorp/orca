@@ -13,6 +13,7 @@ import type {
 import type { DetectedWorktree } from '../../../../shared/worktree/types'
 import type { WorktreeVisibilityDefaults } from '../../../../shared/global-settings-types'
 import {
+  BUILT_IN_WORKTREE_VISIBILITY_SOURCES,
   createWorktreeVisibilitySourceMatcher,
   effectiveDefaultBuiltInWorktreeSourceVisibility,
   effectiveDefaultCustomWorktreeSourceVisibility,
@@ -67,9 +68,13 @@ const VISIBILITY_SEGMENTS: readonly ExternalWorktreeVisibility[] = ['show', 'hid
 
 export function getWorktreeVisibilitySourceLabel(source: WorktreeVisibilitySourceRow): string {
   if (source.kind === 'built-in') {
-    return source.id === 'claude'
-      ? translate('auto.components.sidebar.WorktreeVisibilitySourceList.claude', 'Claude Code')
-      : translate('auto.components.sidebar.WorktreeVisibilitySourceList.gsd', 'GSD')
+    if (source.id === 'claude') {
+      return translate('auto.components.sidebar.WorktreeVisibilitySourceList.claude', 'Claude Code')
+    }
+    if (source.id === 'gsd') {
+      return translate('auto.components.sidebar.WorktreeVisibilitySourceList.gsd', 'GSD')
+    }
+    return translate('auto.components.sidebar.WorktreeVisibilitySourceList.sangai', 'SangAI')
   }
   if (source.kind === 'other') {
     return translate(
@@ -85,7 +90,8 @@ export function getWorktreeVisibilitySourceLabel(source: WorktreeVisibilitySourc
 
 function getSourcePath(source: WorktreeVisibilitySourceRow): string {
   if (source.kind === 'built-in') {
-    return source.id === 'claude' ? '.claude/worktrees/*' : '.gsd-workspaces/*'
+    const builtIn = BUILT_IN_WORKTREE_VISIBILITY_SOURCES.find((entry) => entry.id === source.id)
+    return builtIn ? `${builtIn.relativeRootSegments.join('/')}/*` : ''
   }
   if (source.kind === 'other') {
     return translate(
@@ -177,8 +183,7 @@ export default function WorktreeVisibilitySourceList({
   )
   const sources = useMemo<WorktreeVisibilitySourceRow[]>(
     () => [
-      { kind: 'built-in', id: 'claude' },
-      { kind: 'built-in', id: 'gsd' },
+      ...BUILT_IN_WORKTREE_VISIBILITY_SOURCES.map(({ id }) => ({ kind: 'built-in' as const, id })),
       ...customSources.map((source) => ({ kind: 'custom' as const, source })),
       { kind: 'other' }
     ],

@@ -35,6 +35,10 @@ describe('worktree visibility sources', () => {
       kind: 'built-in',
       id: 'gsd'
     })
+    expect(classify('/repo/data/worktrees/repo-TICKET-123')).toEqual({
+      kind: 'built-in',
+      id: 'sangai'
+    })
     expect(classify('/other/.claude/worktrees/review')).toBeNull()
   })
 
@@ -156,13 +160,14 @@ describe('worktree visibility sources', () => {
     normalize.mockRestore()
   })
 
-  it('migrates the optional legacy agent policy lazily for both built-ins', () => {
+  it('migrates the optional legacy agent policy lazily for built-ins', () => {
     const legacy = repo({ agentWorktreeVisibility: 'show' })
     expect(effectiveBuiltInWorktreeSourceVisibility(legacy, 'claude')).toBe('show')
     expect(effectiveBuiltInWorktreeSourceVisibility(legacy, 'gsd')).toBe('show')
+    expect(effectiveBuiltInWorktreeSourceVisibility(legacy, 'sangai')).toBe('show')
     expect(
       buildWorktreeSourcePreferenceUpdate(legacy, { kind: 'built-in', id: 'claude' }, 'hide')
-    ).toEqual({ builtIn: { claude: 'hide', gsd: 'show' } })
+    ).toEqual({ builtIn: { claude: 'hide', gsd: 'show', sangai: 'show' } })
   })
 
   it('inherits global built-in and custom visibility without stamping sibling defaults', () => {

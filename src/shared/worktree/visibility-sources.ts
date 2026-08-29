@@ -21,7 +21,8 @@ export const BUILT_IN_WORKTREE_VISIBILITY_SOURCES: readonly {
   relativeRootSegments: readonly string[]
 }[] = [
   { id: 'claude', relativeRootSegments: ['.claude', 'worktrees'] },
-  { id: 'gsd', relativeRootSegments: ['.gsd-workspaces'] }
+  { id: 'gsd', relativeRootSegments: ['.gsd-workspaces'] },
+  { id: 'sangai', relativeRootSegments: ['data', 'worktrees'] }
 ]
 
 export type WorktreeVisibilitySourceMatch =
