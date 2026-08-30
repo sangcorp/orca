@@ -29,6 +29,10 @@ import {
 
 // Subscribe only to Cursor hooks needed for spinner and turn detection.
 // Exclude process-boundary session hooks, which can reset the submitted-turn prompt cache.
+// subagentStart/subagentStop are the exception that is NOT about the lead turn:
+// they carry a provider-assigned `subagent_id`, which is what lets the sidebar
+// show Cursor's parallel workers as child rows instead of hiding them inside a
+// single "Working" spinner.
 const CURSOR_EVENTS = [
   'beforeSubmitPrompt',
   'stop',
@@ -37,7 +41,9 @@ const CURSOR_EVENTS = [
   'postToolUseFailure',
   'beforeShellExecution',
   'beforeMCPExecution',
-  'afterAgentResponse'
+  'afterAgentResponse',
+  'subagentStart',
+  'subagentStop'
 ] as const
 
 function getConfigPath(): string {

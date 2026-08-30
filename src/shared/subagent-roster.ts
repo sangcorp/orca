@@ -7,11 +7,11 @@ import {
 } from './agent-status-types'
 import { normalizeOptionalField } from './agent-status-field-normalization'
 
-const CODEX_SUBAGENT_ID_MAX_LENGTH = 64
+const SUBAGENT_ID_MAX_LENGTH = 64
 
-export type CodexSubagentRoster = Map<string, TrackedCodexSubagent>
+export type SubagentRoster = Map<string, TrackedSubagent>
 
-type TrackedCodexSubagent = {
+type TrackedSubagent = {
   agentType?: string
   description?: string
   model?: string
@@ -19,8 +19,8 @@ type TrackedCodexSubagent = {
   startedAt: number
 }
 
-export function upsertCodexSubagent(
-  roster: CodexSubagentRoster,
+export function upsertSubagent(
+  roster: SubagentRoster,
   id: string,
   fields: {
     agentType?: string
@@ -31,7 +31,7 @@ export function upsertCodexSubagent(
   now: number
 ): void {
   const normalizedId = id.trim()
-  if (normalizedId.length === 0 || normalizedId.length > CODEX_SUBAGENT_ID_MAX_LENGTH) {
+  if (normalizedId.length === 0 || normalizedId.length > SUBAGENT_ID_MAX_LENGTH) {
     return
   }
   const agentType = normalizeOptionalField(fields.agentType, AGENT_TYPE_MAX_LENGTH)
@@ -57,18 +57,18 @@ export function upsertCodexSubagent(
   })
 }
 
-export function finishCodexSubagent(roster: CodexSubagentRoster, id: string): void {
+export function finishSubagent(roster: SubagentRoster, id: string): void {
   roster.delete(id.trim())
 }
 
 /**
  * Record the model a already-tracked child is running. Deliberately narrower
- * than `upsertCodexSubagent`: it never creates a roster entry and never touches
+ * than `upsertSubagent`: it never creates a roster entry and never touches
  * `state`, so late model discovery from a child rollout cannot resurrect a
  * finished child nor move any child's lifecycle.
  */
-export function setCodexSubagentModel(
-  roster: CodexSubagentRoster,
+export function setSubagentModel(
+  roster: SubagentRoster,
   id: string,
   model: string | undefined
 ): void {
@@ -83,15 +83,15 @@ export function setCodexSubagentModel(
   existing.model = normalizedModel
 }
 
-export function seedCodexSubagentRoster(
-  roster: CodexSubagentRoster,
+export function seedSubagentRoster(
+  roster: SubagentRoster,
   snapshots: readonly AgentSubagentSnapshot[]
 ): void {
   for (const snapshot of snapshots) {
     if (snapshot.state !== 'working' && snapshot.state !== 'waiting') {
       continue
     }
-    upsertCodexSubagent(
+    upsertSubagent(
       roster,
       snapshot.id,
       {
@@ -105,8 +105,8 @@ export function seedCodexSubagentRoster(
   }
 }
 
-export function codexRosterToSnapshots(
-  roster: CodexSubagentRoster | undefined
+export function rosterToSubagentSnapshots(
+  roster: SubagentRoster | undefined
 ): AgentSubagentSnapshot[] | undefined {
   if (!roster || roster.size === 0) {
     return undefined
@@ -123,8 +123,8 @@ export function codexRosterToSnapshots(
   return snapshots
 }
 
-export function codexRosterEffectiveState(
-  roster: CodexSubagentRoster | undefined,
+export function rosterEffectiveState(
+  roster: SubagentRoster | undefined,
   leadState: 'working' | 'waiting' | 'done'
 ): 'working' | 'waiting' | 'done' {
   if (!roster || roster.size === 0) {

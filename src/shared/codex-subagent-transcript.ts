@@ -2,11 +2,11 @@ import { closeSync, openSync, readSync, readdirSync, statSync, type Stats } from
 import { basename, dirname, extname, isAbsolute, join } from 'node:path'
 
 import {
-  finishCodexSubagent,
-  setCodexSubagentModel,
-  upsertCodexSubagent,
-  type CodexSubagentRoster
-} from './codex-subagent-roster'
+  finishSubagent,
+  setSubagentModel,
+  upsertSubagent,
+  type SubagentRoster
+} from './subagent-roster'
 
 const TRANSCRIPT_READ_MAX_BYTES = 1024 * 1024
 const TRANSCRIPT_LINE_MAX_BYTES = 256 * 1024
@@ -253,7 +253,7 @@ export function hasTrackedCodexTranscriptSubagents(
 
 export function reconcileCodexSubagentTranscript(
   state: CodexSubagentTranscriptState,
-  roster: CodexSubagentRoster,
+  roster: SubagentRoster,
   transcriptPath: string | undefined
 ): void {
   const normalizedPath = transcriptPath?.trim()
@@ -262,7 +262,7 @@ export function reconcileCodexSubagentTranscript(
   }
   if (state.parent.filePath !== normalizedPath) {
     for (const id of state.subagents.keys()) {
-      finishCodexSubagent(roster, id)
+      finishSubagent(roster, id)
     }
     state.parent = { filePath: normalizedPath, offset: 0, carry: '' }
     state.subagents.clear()
@@ -273,7 +273,7 @@ export function reconcileCodexSubagentTranscript(
       continue
     }
     if (activity.kind === 'interrupted') {
-      finishCodexSubagent(roster, activity.id)
+      finishSubagent(roster, activity.id)
       state.subagents.delete(activity.id)
       continue
     }
@@ -284,7 +284,7 @@ export function reconcileCodexSubagentTranscript(
     }
     tracked.description = activity.description ?? tracked.description
     state.subagents.set(activity.id, tracked)
-    upsertCodexSubagent(
+    upsertSubagent(
       roster,
       activity.id,
       { description: tracked.description, state: 'working' },
@@ -316,12 +316,12 @@ export function reconcileCodexSubagentTranscript(
       // Why: re-applied every reconcile, not just on discovery — the parent's
       // own activity upsert can rebuild this child's roster entry, which would
       // otherwise drop a model found on an earlier poll.
-      setCodexSubagentModel(roster, id, tracked.model)
+      setSubagentModel(roster, id, tracked.model)
       if (!childIsComplete(records)) {
         continue
       }
     }
-    finishCodexSubagent(roster, id)
+    finishSubagent(roster, id)
     state.subagents.delete(id)
   }
 }

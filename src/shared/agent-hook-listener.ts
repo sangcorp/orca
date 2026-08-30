@@ -40,14 +40,15 @@ import {
   type ClaudeSubagentRoster
 } from './claude-subagent-roster'
 import { readClaudeBackgroundAgentTasks } from './claude-background-task-inventory'
+import { deriveSubagentSpawns, isSubagentSpawnTool } from './subagent-spawn-tools'
 import {
-  codexRosterEffectiveState,
-  codexRosterToSnapshots,
-  finishCodexSubagent,
-  seedCodexSubagentRoster,
-  upsertCodexSubagent,
-  type CodexSubagentRoster
-} from './codex-subagent-roster'
+  rosterEffectiveState,
+  rosterToSubagentSnapshots,
+  finishSubagent,
+  seedSubagentRoster,
+  upsertSubagent,
+  type SubagentRoster
+} from './subagent-roster'
 import {
   createCodexSubagentTranscriptState,
   hasTrackedCodexTranscriptSubagents,
@@ -143,7 +144,12 @@ export type HookListenerState = {
   /** Panes whose latest authoritative Claude cron inventory still has a scheduled job. */
   claudeActiveSessionCronPaneKeys: Set<string>
   /** Live thread-spawn children per Codex pane. */
-  codexSubagentRosterByPaneKey: Map<string, CodexSubagentRoster>
+  codexSubagentRosterByPaneKey: Map<string, SubagentRoster>
+  /** Live children per pane for agents whose subagents are visible only as a
+   *  tool call (antigravity, hermes, opencode) or as their own lifecycle events
+   *  without a separate lead cache (cursor). Kept apart from the Claude and Codex
+   *  rosters, which carry provider-specific reconciliation state. */
+  derivedSubagentRosterByPaneKey: Map<string, SubagentRoster>
   /** Incremental parent/child rollout cursors for Codex collaboration v2. */
   codexSubagentTranscriptByPaneKey: Map<string, CodexSubagentTranscriptState>
   /** Root Codex state/model, kept separate from child hook traffic. */
@@ -184,7 +190,8 @@ export function createHookListenerState(): HookListenerState {
     claudeActiveSessionCronPaneKeys: new Set(),
     codexSubagentRosterByPaneKey: new Map(),
     codexSubagentTranscriptByPaneKey: new Map(),
-    codexLeadStateByPaneKey: new Map()
+    codexLeadStateByPaneKey: new Map(),
+    derivedSubagentRosterByPaneKey: new Map()
   }
 }
 
@@ -202,6 +209,7 @@ export function clearPaneCacheState(state: HookListenerState, paneKey: string): 
   state.codexSubagentRosterByPaneKey.delete(paneKey)
   state.codexSubagentTranscriptByPaneKey.delete(paneKey)
   state.codexLeadStateByPaneKey.delete(paneKey)
+  state.derivedSubagentRosterByPaneKey.delete(paneKey)
 }
 
 function movePaneScopedMapEntries<T>(
@@ -249,6 +257,7 @@ export function movePaneCacheState(
   movePaneScopedMapEntries(state.codexSubagentRosterByPaneKey, fromPaneKey, toPaneKey)
   movePaneScopedMapEntries(state.codexSubagentTranscriptByPaneKey, fromPaneKey, toPaneKey)
   movePaneScopedMapEntries(state.codexLeadStateByPaneKey, fromPaneKey, toPaneKey)
+  movePaneScopedMapEntries(state.derivedSubagentRosterByPaneKey, fromPaneKey, toPaneKey)
 }
 
 function clearPaneTurnCacheState(state: HookListenerState, paneKey: string): void {
@@ -294,6 +303,7 @@ export function clearAllListenerCaches(state: HookListenerState): void {
   state.codexSubagentRosterByPaneKey.clear()
   state.codexSubagentTranscriptByPaneKey.clear()
   state.codexLeadStateByPaneKey.clear()
+  state.derivedSubagentRosterByPaneKey.clear()
 }
 
 /** Warn-once on cross-build (`version`) and dev-vs-prod (`env`) mismatches; the relay's "remote" env marker is a location tag, not a build env, so it must not warn as a stale local hook. */
@@ -3415,6 +3425,25 @@ function normalizeAntigravityEvent(
     return null
   }
 
+  // Why: Antigravity spawns children through `invoke_subagent` / `browser_subagent`
+  // and emits no subagent lifecycle event, so the tool call is the only signal.
+  // Its hook payload documents `toolCall` as {name, args} with no call id, hence
+  // the name-derived key inside deriveSubagentSpawns.
+  if (eventName === 'PreToolUse' || eventName === 'PostToolUse') {
+    trackDerivedSubagentToolCall(
+      state,
+      'antigravity',
+      paneKey,
+      eventName === 'PreToolUse' ? 'start' : 'finish',
+      toolName,
+      undefined,
+      readAntigravityToolCall(hookPayload).toolInputSource
+    )
+  }
+  if (stateName === 'done') {
+    clearDerivedSubagents(state, paneKey)
+  }
+
   const resetsTurn = isNewTurnEvent('antigravity', eventName)
   // Why: once the prompt is cached for this pane, avoid rescanning the (potentially large) Antigravity transcript per hook.
   const cachedPrompt = resetsTurn ? undefined : state.lastPromptByPaneKey.get(paneKey)
@@ -3436,7 +3465,8 @@ function normalizeAntigravityEvent(
     toolName: snapshot.toolName,
     toolInput: snapshot.toolInput,
     interactivePrompt: snapshot.interactivePrompt,
-    lastAssistantMessage: snapshot.lastAssistantMessage
+    lastAssistantMessage: snapshot.lastAssistantMessage,
+    subagents: derivedSubagentSnapshots(state, paneKey)
   })
   // Why: Antigravity can emit Stop with fullyIdle=false between tool steps; only a fully idle Stop is terminal, else the sidebar bounces done -> working and ignores later tool updates.
   if (eventName === 'Stop' && !stopStillBusy && transcriptPath) {
@@ -3607,16 +3637,89 @@ function hasExplicitPromptForSource(
   return eventName === 'agent.start' && promptText.length > 0
 }
 
-function getOrCreateCodexSubagentRoster(
-  state: HookListenerState,
-  paneKey: string
-): CodexSubagentRoster {
+function getOrCreateCodexSubagentRoster(state: HookListenerState, paneKey: string): SubagentRoster {
   let roster = state.codexSubagentRosterByPaneKey.get(paneKey)
   if (!roster) {
     roster = new Map()
     state.codexSubagentRosterByPaneKey.set(paneKey, roster)
   }
   return roster
+}
+
+function getOrCreateDerivedSubagentRoster(
+  state: HookListenerState,
+  paneKey: string
+): SubagentRoster {
+  let roster = state.derivedSubagentRosterByPaneKey.get(paneKey)
+  if (!roster) {
+    roster = new Map()
+    state.derivedSubagentRosterByPaneKey.set(paneKey, roster)
+  }
+  return roster
+}
+
+/** Snapshots for an agent whose children are tracked in the shared derived roster. */
+function derivedSubagentSnapshots(
+  state: HookListenerState,
+  paneKey: string
+): AgentSubagentSnapshot[] | undefined {
+  return rosterToSubagentSnapshots(state.derivedSubagentRosterByPaneKey.get(paneKey))
+}
+
+/**
+ * Track the children a spawn-tool call represents.
+ *
+ * `phase` is the tool call's own boundary, not the pane's: a spawn tool runs its
+ * child to completion inside the call, so the pre-event is the child's start and
+ * the post-event is its finish. Non-spawn tools are ignored, so every tool event
+ * can be passed through.
+ */
+function trackDerivedSubagentToolCall(
+  state: HookListenerState,
+  agent: string,
+  paneKey: string,
+  phase: 'start' | 'finish',
+  toolName: string | undefined,
+  callId: string | undefined,
+  args: unknown
+): void {
+  if (!isSubagentSpawnTool(agent, toolName)) {
+    return
+  }
+  const spawns = deriveSubagentSpawns(agent, toolName, callId, args)
+  if (spawns.length === 0) {
+    return
+  }
+  if (phase === 'finish') {
+    const roster = state.derivedSubagentRosterByPaneKey.get(paneKey)
+    if (!roster) {
+      return
+    }
+    for (const spawn of spawns) {
+      finishSubagent(roster, spawn.id)
+    }
+    if (roster.size === 0) {
+      state.derivedSubagentRosterByPaneKey.delete(paneKey)
+    }
+    return
+  }
+  const roster = getOrCreateDerivedSubagentRoster(state, paneKey)
+  const now = Date.now()
+  for (const spawn of spawns) {
+    upsertSubagent(
+      roster,
+      spawn.id,
+      { agentType: spawn.agentType, description: spawn.description, state: 'working' },
+      now
+    )
+  }
+}
+
+/** Drop every derived child of a pane. Used when the lead turn ends: a spawn tool
+ *  cannot outlive the turn that called it, so a row surviving a completed turn is
+ *  a post-event Orca never saw, not a live child. */
+function clearDerivedSubagents(state: HookListenerState, paneKey: string): void {
+  state.derivedSubagentRosterByPaneKey.delete(paneKey)
 }
 
 function getOrCreateCodexSubagentTranscriptState(
@@ -3642,7 +3745,7 @@ export function seedCodexStateFromSnapshot(
 ): void {
   const snapshots = payload.subagents ?? []
   if (snapshots.length > 0 && !state.codexSubagentRosterByPaneKey.has(paneKey)) {
-    seedCodexSubagentRoster(getOrCreateCodexSubagentRoster(state, paneKey), snapshots)
+    seedSubagentRoster(getOrCreateCodexSubagentRoster(state, paneKey), snapshots)
   }
   if (!state.codexLeadStateByPaneKey.has(paneKey)) {
     // Why: child hooks after restart omit the root model; seed it from durable status before they can overwrite the cache.
@@ -3707,11 +3810,11 @@ export function reconcileRemoteCodexState(
   }
   const roster = getOrCreateCodexSubagentRoster(state, paneKey)
   if (payload.subagents) {
-    seedCodexSubagentRoster(roster, payload.subagents)
+    seedSubagentRoster(roster, payload.subagents)
   }
   if (agentId) {
     if (eventName === 'SubagentStop') {
-      finishCodexSubagent(roster, agentId)
+      finishSubagent(roster, agentId)
     }
   } else {
     const leadState = codexLeadStateForHookEvent(eventName)
@@ -3733,9 +3836,9 @@ export function reconcileRemoteCodexState(
   }
   return {
     ...payload,
-    state: codexRosterEffectiveState(roster, lead.state),
+    state: rosterEffectiveState(roster, lead.state),
     model: lead.model ?? payload.model,
-    subagents: codexRosterToSnapshots(roster)
+    subagents: rosterToSubagentSnapshots(roster)
   }
 }
 
@@ -3765,7 +3868,7 @@ function buildCodexStatusPayload(
     toolInput: snapshot.toolInput,
     interactivePrompt: snapshot.interactivePrompt,
     lastAssistantMessage: snapshot.lastAssistantMessage,
-    subagents: codexRosterToSnapshots(state.codexSubagentRosterByPaneKey.get(paneKey))
+    subagents: rosterToSubagentSnapshots(state.codexSubagentRosterByPaneKey.get(paneKey))
   })
 }
 
@@ -3776,10 +3879,7 @@ function buildCodexChildDrivenStatusPayload(
   hookPayload: Record<string, unknown>
 ): ParsedAgentStatusPayload | null {
   const leadState = state.codexLeadStateByPaneKey.get(paneKey)?.state ?? 'working'
-  const stateName = codexRosterEffectiveState(
-    state.codexSubagentRosterByPaneKey.get(paneKey),
-    leadState
-  )
+  const stateName = rosterEffectiveState(state.codexSubagentRosterByPaneKey.get(paneKey), leadState)
   return buildCodexStatusPayload(state, eventName, '', paneKey, hookPayload, {
     stateName,
     updateLead: false
@@ -3798,7 +3898,7 @@ function normalizeCodexSubagentLifecycleEvent(
   }
   const roster = getOrCreateCodexSubagentRoster(state, paneKey)
   if (eventName === 'SubagentStart') {
-    upsertCodexSubagent(
+    upsertSubagent(
       roster,
       agentId,
       {
@@ -3809,7 +3909,7 @@ function normalizeCodexSubagentLifecycleEvent(
       Date.now()
     )
   } else {
-    finishCodexSubagent(roster, agentId)
+    finishSubagent(roster, agentId)
   }
   return buildCodexChildDrivenStatusPayload(state, eventName, paneKey, hookPayload)
 }
@@ -3846,7 +3946,7 @@ function normalizeCodexEvent(
 
   const agentId = readString(hookPayload, 'agent_id')
   if (agentId) {
-    upsertCodexSubagent(
+    upsertSubagent(
       getOrCreateCodexSubagentRoster(state, paneKey),
       agentId,
       {
@@ -3883,7 +3983,7 @@ function normalizeCodexEvent(
       normalizeOptionalField(hookPayload['model'], AGENT_MODEL_MAX_LENGTH) ??
       (eventName === 'SessionStart' ? undefined : previousLead?.model)
   })
-  const effectiveState = codexRosterEffectiveState(
+  const effectiveState = rosterEffectiveState(
     state.codexSubagentRosterByPaneKey.get(paneKey),
     stateName
   )
@@ -3905,7 +4005,10 @@ function normalizeOpenCodeFamilyEvent(
     isNewTurnEvent(source, eventName) ||
     (eventName === 'MessagePart' && hookPayload.role === 'user')
   const stateName =
-    eventName === 'SessionBusy' || eventName === 'MessagePart'
+    eventName === 'SessionBusy' ||
+    eventName === 'MessagePart' ||
+    eventName === 'SubagentStart' ||
+    eventName === 'SubagentStop'
       ? 'working'
       : eventName === 'SessionIdle'
         ? 'done'
@@ -3917,6 +4020,25 @@ function normalizeOpenCodeFamilyEvent(
 
   if (!stateName) {
     return null
+  }
+
+  // Why: OpenCode spawns children with the `task` tool and has no native subagent
+  // event, so the managed plugin reports that ONE tool's boundaries as
+  // SubagentStart/SubagentStop. Scoping it to the spawn tool keeps opencode's
+  // deliberately throttled status stream from turning into a per-tool firehose.
+  if (eventName === 'SubagentStart' || eventName === 'SubagentStop') {
+    trackDerivedSubagentToolCall(
+      state,
+      source,
+      paneKey,
+      eventName === 'SubagentStart' ? 'start' : 'finish',
+      readString(hookPayload, 'tool'),
+      readString(hookPayload, 'callID'),
+      hookPayload.args
+    )
+  }
+  if (stateName === 'done') {
+    clearDerivedSubagents(state, paneKey)
   }
 
   const snapshot = resolveToolState(
@@ -3936,7 +4058,8 @@ function normalizeOpenCodeFamilyEvent(
     toolInput: snapshot.toolInput,
     interactivePrompt: snapshot.interactivePrompt,
     lastAssistantMessage: snapshot.lastAssistantMessage,
-    sessionBoundary: source === 'opencode' && eventName === 'SessionStart' ? true : undefined
+    sessionBoundary: source === 'opencode' && eventName === 'SessionStart' ? true : undefined,
+    subagents: derivedSubagentSnapshots(state, paneKey)
   })
 }
 
@@ -3947,9 +4070,45 @@ function normalizeCursorEvent(
   paneKey: string,
   hookPayload: Record<string, unknown>
 ): ParsedAgentStatusPayload | null {
+  // Why: Cursor is the third agent with a real subagent lifecycle (alongside Claude
+  // and Codex): `subagentStart` / `subagentStop` carry a provider-assigned
+  // `subagent_id`, so its rows come from those events rather than from tool calls.
+  if (eventName === 'subagentStart') {
+    const subagentId = readString(hookPayload, 'subagent_id')
+    if (subagentId) {
+      upsertSubagent(
+        getOrCreateDerivedSubagentRoster(state, paneKey),
+        subagentId,
+        {
+          agentType: readString(hookPayload, 'subagent_type'),
+          model: readString(hookPayload, 'subagent_model'),
+          description: readFirstString(hookPayload, ['task', 'description']),
+          state: 'working'
+        },
+        Date.now()
+      )
+    }
+  } else if (eventName === 'subagentStop') {
+    const subagentId = readString(hookPayload, 'subagent_id')
+    const roster = state.derivedSubagentRosterByPaneKey.get(paneKey)
+    if (subagentId && roster) {
+      finishSubagent(roster, subagentId)
+      if (roster.size === 0) {
+        state.derivedSubagentRosterByPaneKey.delete(paneKey)
+      }
+    }
+  } else if (eventName === 'beforeSubmitPrompt' || eventName === 'sessionEnd') {
+    // Why: a child whose stop Orca never saw would pin the pane 'working' forever.
+    // A new turn and the session's end are the two points where no child can still
+    // legitimately be running from the previous one.
+    clearDerivedSubagents(state, paneKey)
+  }
+
   // Why: Cursor can emit final response text after `stop`; enrich the completed row, don't resurrect the agent as working.
   const previousStatus = state.lastStatusByPaneKey.get(paneKey)?.payload
   const stateName =
+    eventName === 'subagentStart' ||
+    eventName === 'subagentStop' ||
     eventName === 'beforeSubmitPrompt' ||
     eventName === 'sessionStart' ||
     eventName === 'preToolUse' ||
@@ -3986,7 +4145,10 @@ function normalizeCursorEvent(
       : undefined
 
   return normalizeAgentStatusPayload({
-    state: stateName,
+    // Why: a parallel worker can outlive the lead's `stop`. Reporting the pane
+    // done there would hide a child that is still running, so a non-empty roster
+    // holds the pane at 'working' until the last child stops.
+    state: rosterEffectiveState(state.derivedSubagentRosterByPaneKey.get(paneKey), stateName),
     prompt: resolvePrompt(state, paneKey, promptText, {
       resetOnNewTurn: isNewTurnEvent('cursor', eventName)
     }),
@@ -3995,7 +4157,8 @@ function normalizeCursorEvent(
     toolInput: snapshot.toolInput,
     interactivePrompt: snapshot.interactivePrompt,
     lastAssistantMessage: snapshot.lastAssistantMessage,
-    interrupted
+    interrupted,
+    subagents: derivedSubagentSnapshots(state, paneKey)
   })
 }
 
@@ -4330,6 +4493,23 @@ function normalizeHermesEvent(
     return null
   }
 
+  // Why: Hermes has no subagent lifecycle event — `delegate_task` IS the spawn,
+  // and one call fans out a whole task list, so each task becomes its own row.
+  if (eventName === 'pre_tool_call' || eventName === 'post_tool_call') {
+    trackDerivedSubagentToolCall(
+      state,
+      'hermes',
+      paneKey,
+      eventName === 'pre_tool_call' ? 'start' : 'finish',
+      readString(hookPayload, 'tool_name'),
+      readString(hookPayload, 'tool_call_id'),
+      hookPayload.args
+    )
+  }
+  if (stateName === 'done') {
+    clearDerivedSubagents(state, paneKey)
+  }
+
   const snapshot = resolveToolState(
     state,
     paneKey,
@@ -4346,7 +4526,8 @@ function normalizeHermesEvent(
     toolName: snapshot.toolName,
     toolInput: snapshot.toolInput,
     interactivePrompt: snapshot.interactivePrompt,
-    lastAssistantMessage: snapshot.lastAssistantMessage
+    lastAssistantMessage: snapshot.lastAssistantMessage,
+    subagents: derivedSubagentSnapshots(state, paneKey)
   })
 }
 

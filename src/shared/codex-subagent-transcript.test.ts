@@ -23,7 +23,7 @@ import {
   hasTrackedCodexTranscriptSubagents,
   reconcileCodexSubagentTranscript
 } from './codex-subagent-transcript'
-import { codexRosterToSnapshots, type CodexSubagentRoster } from './codex-subagent-roster'
+import { rosterToSubagentSnapshots, type SubagentRoster } from './subagent-roster'
 
 const CHILD_ID = '019fa65f-3144-7151-9c02-cff7a28f316f'
 
@@ -69,12 +69,12 @@ describe('Codex subagent transcript reconciliation', () => {
     writeFileSync(parentPath, jsonl([activity('started')]))
     writeFileSync(childPath, jsonl([{ type: 'event_msg', payload: { type: 'task_started' } }]))
     const state = createCodexSubagentTranscriptState()
-    const roster: CodexSubagentRoster = new Map()
+    const roster: SubagentRoster = new Map()
 
     reconcileCodexSubagentTranscript(state, roster, parentPath)
 
     expect(hasTrackedCodexTranscriptSubagents(state)).toBe(true)
-    expect(codexRosterToSnapshots(roster)).toEqual([
+    expect(rosterToSubagentSnapshots(roster)).toEqual([
       {
         id: CHILD_ID,
         description: '/root/sidebar_repro',
@@ -95,7 +95,7 @@ describe('Codex subagent transcript reconciliation', () => {
     reconcileCodexSubagentTranscript(state, roster, parentPath)
 
     expect(hasTrackedCodexTranscriptSubagents(state)).toBe(false)
-    expect(codexRosterToSnapshots(roster)).toBeUndefined()
+    expect(rosterToSubagentSnapshots(roster)).toBeUndefined()
   })
 
   it('resolves a child rollout filed under a later session day than the parent', () => {
@@ -111,7 +111,7 @@ describe('Codex subagent transcript reconciliation', () => {
     writeFileSync(parentPath, jsonl([activity('started', childStartedAt)]))
     writeFileSync(childPath, jsonl([{ type: 'event_msg', payload: { type: 'task_started' } }]))
     const state = createCodexSubagentTranscriptState()
-    const roster: CodexSubagentRoster = new Map()
+    const roster: SubagentRoster = new Map()
 
     reconcileCodexSubagentTranscript(state, roster, parentPath)
     writeFileSync(
@@ -136,7 +136,7 @@ describe('Codex subagent transcript reconciliation', () => {
       const parentPath = join(dir, 'rollout-parent.jsonl')
       writeFileSync(parentPath, jsonl([activity('started')]))
       const state = createCodexSubagentTranscriptState()
-      const roster: CodexSubagentRoster = new Map()
+      const roster: SubagentRoster = new Map()
 
       reconcileCodexSubagentTranscript(state, roster, parentPath)
       expect(roster.size).toBe(1)
@@ -161,7 +161,7 @@ describe('Codex subagent transcript reconciliation', () => {
     const parentPath = join(dir, 'rollout-parent.jsonl')
     writeFileSync(parentPath, jsonl([activity('started')]))
     const state = createCodexSubagentTranscriptState()
-    const roster: CodexSubagentRoster = new Map()
+    const roster: SubagentRoster = new Map()
     reconcileCodexSubagentTranscript(state, roster, parentPath)
 
     writeFileSync(parentPath, jsonl([activity('started'), activity('interrupted')]))
@@ -197,18 +197,18 @@ describe('Codex subagent transcript reconciliation', () => {
     it('reports the model from the child rollout, not the parent model', () => {
       const { parentPath } = seedPair([started(), turnContext('gpt-5.6-terra')])
       const state = createCodexSubagentTranscriptState()
-      const roster: CodexSubagentRoster = new Map()
+      const roster: SubagentRoster = new Map()
 
       reconcileCodexSubagentTranscript(state, roster, parentPath)
 
       // The parent runs sol; only the child's own turn_context may set its model.
-      expect(codexRosterToSnapshots(roster)?.[0]?.model).toBe('gpt-5.6-terra')
+      expect(rosterToSubagentSnapshots(roster)?.[0]?.model).toBe('gpt-5.6-terra')
     })
 
     it('keeps the discovered model when a later poll carries no turn_context', () => {
       const { parentPath, childPath } = seedPair([started(), turnContext('gpt-5.6-terra')])
       const state = createCodexSubagentTranscriptState()
-      const roster: CodexSubagentRoster = new Map()
+      const roster: SubagentRoster = new Map()
       reconcileCodexSubagentTranscript(state, roster, parentPath)
 
       // The cursor is incremental: this appended line is all the next read sees.
@@ -222,7 +222,7 @@ describe('Codex subagent transcript reconciliation', () => {
       )
       reconcileCodexSubagentTranscript(state, roster, parentPath)
 
-      expect(codexRosterToSnapshots(roster)?.[0]?.model).toBe('gpt-5.6-terra')
+      expect(rosterToSubagentSnapshots(roster)?.[0]?.model).toBe('gpt-5.6-terra')
     })
 
     it('tracks the newest model when the child switches mid-session', () => {
@@ -232,22 +232,22 @@ describe('Codex subagent transcript reconciliation', () => {
         turnContext('gpt-5.6-sol')
       ])
       const state = createCodexSubagentTranscriptState()
-      const roster: CodexSubagentRoster = new Map()
+      const roster: SubagentRoster = new Map()
 
       reconcileCodexSubagentTranscript(state, roster, parentPath)
 
-      expect(codexRosterToSnapshots(roster)?.[0]?.model).toBe('gpt-5.6-sol')
+      expect(rosterToSubagentSnapshots(roster)?.[0]?.model).toBe('gpt-5.6-sol')
     })
 
     it('leaves the child working and keeps its identity while reading the model', () => {
       const { parentPath } = seedPair([started(), turnContext('gpt-5.6-terra')])
       const state = createCodexSubagentTranscriptState()
-      const roster: CodexSubagentRoster = new Map()
+      const roster: SubagentRoster = new Map()
 
       reconcileCodexSubagentTranscript(state, roster, parentPath)
 
       // Model discovery must not move lifecycle or overwrite the child's label.
-      expect(codexRosterToSnapshots(roster)).toEqual([
+      expect(rosterToSubagentSnapshots(roster)).toEqual([
         {
           id: CHILD_ID,
           description: '/root/sidebar_repro',
@@ -266,7 +266,7 @@ describe('Codex subagent transcript reconciliation', () => {
         { type: 'event_msg', payload: { type: 'task_complete' } }
       ])
       const state = createCodexSubagentTranscriptState()
-      const roster: CodexSubagentRoster = new Map()
+      const roster: SubagentRoster = new Map()
 
       reconcileCodexSubagentTranscript(state, roster, parentPath)
 
@@ -277,7 +277,7 @@ describe('Codex subagent transcript reconciliation', () => {
     it('reads the model without opening any file beyond the parent and child rollouts', () => {
       const { parentPath } = seedPair([started(), turnContext('gpt-5.6-terra')])
       const state = createCodexSubagentTranscriptState()
-      const roster: CodexSubagentRoster = new Map()
+      const roster: SubagentRoster = new Map()
       openSyncCalls.mockClear()
 
       reconcileCodexSubagentTranscript(state, roster, parentPath)
@@ -285,7 +285,7 @@ describe('Codex subagent transcript reconciliation', () => {
       // Why: model extraction reuses the records already read for completion
       // detection, so it must add no file I/O of its own.
       expect(openSyncCalls).toHaveBeenCalledTimes(2)
-      expect(codexRosterToSnapshots(roster)?.[0]?.model).toBe('gpt-5.6-terra')
+      expect(rosterToSubagentSnapshots(roster)?.[0]?.model).toBe('gpt-5.6-terra')
     })
   })
 })

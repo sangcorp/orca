@@ -26,7 +26,9 @@ const CURSOR_EVENTS = [
   'postToolUseFailure',
   'beforeShellExecution',
   'beforeMCPExecution',
-  'afterAgentResponse'
+  'afterAgentResponse',
+  'subagentStart',
+  'subagentStop'
 ]
 
 const CURSOR_SCRIPT_FILE_NAME = process.platform === 'win32' ? 'cursor-hook.cmd' : 'cursor-hook.sh'
