@@ -157,6 +157,7 @@ export const TERMINAL_HANDLERS: Record<string, CommandHandler> = {
       )
     }
     const command = getOptionalStringFlag(flags, 'command')
+    const launchAgent = getOptionalStringFlag(flags, 'agent')
     const useRendererBackedInteractiveTerminal =
       !client.isRemote && shouldUseRendererBackedInteractiveTerminal(command)
     const focus = flags.get('focus') === true
@@ -164,6 +165,7 @@ export const TERMINAL_HANDLERS: Record<string, CommandHandler> = {
       worktree: await getBrowserWorktreeSelector(flags, cwd, client),
       command,
       title: getOptionalStringFlag(flags, 'title'),
+      ...(launchAgent ? { launchAgent } : {}),
       // Why: interactive local agent TUIs need the renderer-backed terminal
       // path for browser-side features, but CLI creates must stay backgrounded
       // unless the caller explicitly asks for focus.

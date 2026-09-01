@@ -544,7 +544,7 @@ describe('launchWorkItemDirect', () => {
     expect(mocks.seedNativeChatLaunchDraft).not.toHaveBeenCalled()
   })
 
-  it('uses remote cursor-agent detection, trust preflight, and paste launch for SSH repos', async () => {
+  it('uses remote agent detection, trust preflight, and paste launch for SSH repos', async () => {
     mocks.store.repos = [
       {
         id: 'repo-ssh',
@@ -561,8 +561,8 @@ describe('launchWorkItemDirect', () => {
     vi.mocked(buildAgentDraftLaunchPlan).mockReturnValueOnce(null)
     vi.mocked(buildAgentStartupPlan).mockReturnValueOnce({
       agent: 'cursor',
-      launchCommand: 'cursor-agent',
-      expectedProcess: 'cursor-agent',
+      launchCommand: 'agent',
+      expectedProcess: 'agent',
       followupPrompt: null,
       launchConfig: { agentArgs: '', agentEnv: {} }
     })

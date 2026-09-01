@@ -17,6 +17,12 @@ import {
   type AntigravityWorkspaceResolver
 } from './session-scanner-antigravity-history'
 import { antigravityHistoryPathForBrainDir } from './session-scanner-antigravity-paths'
+import {
+  createCursorWorkspaceResolver,
+  readLocalCursorChatsIndex,
+  resolveCursorChatsDir,
+  type CursorWorkspaceResolver
+} from './session-scanner-cursor-cwd'
 import { codexHomeForSessionsDir } from './session-scanner-codex-paths'
 import {
   ensureSessionParseCacheLoaded,
@@ -75,6 +81,11 @@ export async function scanAiVaultSessions(
     const antigravityWorkspaceResolver = createAntigravityWorkspaceResolver(
       readLocalAntigravityHistory
     )
+    const cursorWorkspaceResolver = createCursorWorkspaceResolver(readLocalCursorChatsIndex)
+    const cursorChatsDir = resolveCursorChatsDir(
+      options.cursorChatsDir,
+      options.cursorProjectsDir
+    )
     // Why: persisted entries must be seeded before any candidate is parsed, or
     // the cold scan gains nothing from the cache file (#9210).
     throwIfAiVaultScanCancelled(options.signal)
@@ -120,7 +131,9 @@ export async function scanAiVaultSessions(
       issues,
       parseStats,
       signal: options.signal,
-      antigravityWorkspaceResolver
+      antigravityWorkspaceResolver,
+      cursorWorkspaceResolver,
+      cursorChatsDir
     })
 
     const cappedSessions = dedupeCodexSessionsBySessionId(parsedSessions)
@@ -230,6 +243,8 @@ async function parseSessionCandidates(args: {
   parseStats: SessionParseStats
   signal?: AbortSignal
   antigravityWorkspaceResolver?: AntigravityWorkspaceResolver
+  cursorWorkspaceResolver?: CursorWorkspaceResolver
+  cursorChatsDir?: string
 }): Promise<AiVaultSession[]> {
   const sessions: AiVaultSession[] = []
   let index = 0
@@ -251,7 +266,9 @@ async function parseSessionCandidates(args: {
           args.platform,
           args.executionHostId,
           args.parseStats,
-          args.antigravityWorkspaceResolver
+          args.antigravityWorkspaceResolver,
+          args.cursorWorkspaceResolver,
+          args.cursorChatsDir
         )
       )
     )
@@ -284,12 +301,20 @@ async function parseSessionCandidate(
   platform: NodeJS.Platform,
   executionHostId: ExecutionHostId,
   parseStats: SessionParseStats,
-  antigravityWorkspaceResolver?: AntigravityWorkspaceResolver
+  antigravityWorkspaceResolver?: AntigravityWorkspaceResolver,
+  cursorWorkspaceResolver?: CursorWorkspaceResolver,
+  cursorChatsDir?: string
 ): Promise<SessionParseResult> {
   try {
     let session = await parseAgentSessionFileCached(candidate, platform, parseStats)
     if (session && candidate.antigravityHistoryPath && antigravityWorkspaceResolver) {
       session = await antigravityWorkspaceResolver.enrich(session, candidate.antigravityHistoryPath)
+    }
+    if (session && session.agent === 'cursor' && !session.cwd && cursorWorkspaceResolver) {
+      session = await cursorWorkspaceResolver.enrich(
+        session,
+        cursorChatsDir ?? resolveCursorChatsDir()
+      )
     }
     return {
       session: session ? withSessionExecutionHost(session, executionHostId) : null,

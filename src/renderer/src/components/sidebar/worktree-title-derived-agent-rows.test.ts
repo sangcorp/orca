@@ -222,6 +222,25 @@ describe('buildTitleDerivedAgentRows', () => {
     ).toEqual([['codex', 'working', 'Codex', '⠼ demo-repo']])
   })
 
+  it('keeps a launched agent visible when its title carries neither status nor identity', () => {
+    const launchAgent: TuiAgent = 'hermes'
+    const rows = buildWorktreeAgentRows({
+      tabs: [makeTab('tab-1', { launchAgent, title: '✓ app-cli · ~/sangai' })],
+      entries: [],
+      retained: [],
+      runtimePaneTitlesByTabId: {
+        'tab-1': { 1: '✓ app-cli · ~/sangai' }
+      },
+      ptyIdsByTabId: { 'tab-1': ['pty-hermes'] },
+      terminalLayoutsByTabId: { 'tab-1': makeSingleLayout(LEAF_ID_1) },
+      now: 2000
+    })
+
+    expect(
+      rows.map((row) => [row.agentType, row.state, row.entry.prompt, row.entry.terminalTitle])
+    ).toEqual([['hermes', 'idle', 'Hermes', '✓ app-cli · ~/sangai']])
+  })
+
   it('keeps explicit title identity over the launched agent', () => {
     const launchAgent: TuiAgent = 'claude'
     const rows = buildWorktreeAgentRows({
@@ -365,7 +384,11 @@ describe('buildTitleDerivedAgentRows', () => {
     expect(rowsFor('✳ Claude Code', 'opencode').map((row) => row.agentType)).toEqual(['claude'])
     // No owner to defend the pane: naming Claude stays the only available identity.
     expect(rowsFor('⠋ use Claude Sonnet').map((row) => row.agentType)).toEqual(['claude'])
-    expect(rowsFor('zsh', 'opencode')).toHaveLength(0)
+    // Why: a launched agent whose title fell back to a bare shell name must stay
+    // visible — hiding it until a status glyph or hook arrives was the miss.
+    expect(rowsFor('zsh', 'opencode').map((row) => [row.agentType, row.state])).toEqual([
+      ['opencode', 'idle']
+    ])
   })
 
   it('does not brand a split pane with the tab-scoped launch agent', () => {

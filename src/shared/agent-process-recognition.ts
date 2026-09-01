@@ -57,6 +57,13 @@ const PYTHON_SCRIPT_ENTRYPOINT_DIRECTORIES = ['/bin/', '/scripts/', '/site-packa
 
 const PROCESS_TO_AGENT = new Map<string, TuiAgent>()
 const AGENT_TYPE_IDS = new Set<TuiAgent>()
+// Why: Cursor's CLI is now literally named `agent`, but that token is too
+// generic to own as a process→agent map key (other tools also ship `agent`).
+// Cursor is recognized from its versioned index.js path instead.
+const AMBIGUOUS_PROCESS_NAMES = new Set(['agent'])
+// Why: Cursor renamed `cursor-agent` → `agent`; ready-wait / follow-up delivery
+// must accept either foreground name during the transition.
+const CURSOR_CLI_PROCESS_NAMES = new Set(['agent', 'cursor-agent'])
 
 for (const [agent, config] of Object.entries(TUI_AGENT_CONFIG) as [
   TuiAgent,
@@ -69,7 +76,7 @@ for (const [agent, config] of Object.entries(TUI_AGENT_CONFIG) as [
     getFirstCommandToken(config.launchCmd)
   ]) {
     const normalized = normalizeProcessName(candidate)
-    if (normalized) {
+    if (normalized && !AMBIGUOUS_PROCESS_NAMES.has(normalized)) {
       // Why: claude-agent-teams is an Orca wrapper whose child process is the
       // real `claude` binary. Do not let wrapper configs overwrite canonical
       // CLI ownership for the same foreground process name.
@@ -263,9 +270,15 @@ export function isExpectedAgentProcess(
   if (!normalizedProcess || !normalizedExpected) {
     return false
   }
-  return (
+  if (
     normalizedProcess === normalizedExpected ||
     normalizedProcess.startsWith(`${normalizedExpected}.`)
+  ) {
+    return true
+  }
+  return (
+    CURSOR_CLI_PROCESS_NAMES.has(normalizedProcess) &&
+    CURSOR_CLI_PROCESS_NAMES.has(normalizedExpected)
   )
 }
 
@@ -299,19 +312,34 @@ export function recognizeAgentProcessFromCommandLine(
     return directRecognition
   }
   const entrypoint = findInterpreterEntrypointToken(tokens, firstNormalized)
-  if (!entrypoint) {
-    return null
+  if (entrypoint) {
+    const viaEntrypoint = isPythonProcessName(firstNormalized)
+      ? recognizePythonEntrypoint(tokens, entrypoint)
+      : (recognizeAgentProcess(entrypoint) ?? recognizeNodeScriptEntrypoint(entrypoint))
+    if (
+      viaEntrypoint?.agent === 'claude-agent-teams' &&
+      tokens[tokens.indexOf(entrypoint, 1) + 1]?.toLowerCase() !== 'claude-teams'
+    ) {
+      return null
+    }
+    if (viaEntrypoint) {
+      return keep ? viaEntrypoint : filterHeadlessOneShotAgentCommand(viaEntrypoint, tokens)
+    }
   }
-  const viaEntrypoint = isPythonProcessName(firstNormalized)
-    ? recognizePythonEntrypoint(tokens, entrypoint)
-    : (recognizeAgentProcess(entrypoint) ?? recognizeNodeScriptEntrypoint(entrypoint))
-  if (
-    viaEntrypoint?.agent === 'claude-agent-teams' &&
-    tokens[tokens.indexOf(entrypoint, 1) + 1]?.toLowerCase() !== 'claude-teams'
-  ) {
-    return null
+  // Why: Cursor's CLI was renamed to `agent`. Its shim does
+  // `exec -a "$0" node --use-system-ca …/cursor-agent/versions/<ver>/index.js`, so
+  // argv0 is the generic `agent` name (which we refuse to map — Grok also ships
+  // `agent`) while the versioned index.js remains on the command line. That is
+  // not an interpreter wrapper, so the entrypoint scan above misses it; match the
+  // exact install path on any argv token instead. Patterns are path-anchored, so
+  // prompt text mentioning other agents cannot collide.
+  for (const token of tokens.slice(1)) {
+    const viaExactPath = recognizeNodeScriptEntrypoint(token)
+    if (viaExactPath) {
+      return keep ? viaExactPath : filterHeadlessOneShotAgentCommand(viaExactPath, tokens)
+    }
   }
-  return keep ? viaEntrypoint : filterHeadlessOneShotAgentCommand(viaEntrypoint, tokens)
+  return null
 }
 export function isAgentForegroundWrapperProcess(processName: string | null | undefined): boolean {
   const normalized = normalizeProcessName(processName)

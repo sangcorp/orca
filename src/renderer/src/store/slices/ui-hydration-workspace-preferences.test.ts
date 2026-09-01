@@ -690,6 +690,6 @@ describe('createUISlice hydratePersistedUI', () => {
       })
     )
 
-    expect(store.getState().agentActivityDisplayMode).toBe('compact')
+    expect(store.getState().agentActivityDisplayMode).toBe('full')
   })
 })

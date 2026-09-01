@@ -149,10 +149,18 @@ function buildTitleDerivedAgentRow(args: {
   // Why (cursor): the native `cursor agent` literal is deliberately status-less so a
   // redraw cannot stomp hook state — but it still identifies a live pane, so the row
   // reads idle instead of vanishing (#10258).
-  const status = isClaudeAgentsTitle
-    ? 'idle'
+  // Why (launchAgent): launched agents may rewrite the title to provider chrome
+  // that carries neither a status glyph nor an agent token (Hermes `✓ app-cli`,
+  // bare OpenCode before `OC | …`). Keep the live PTY visible as idle instead of
+  // hiding a running agent until a hook arrives.
+  const titleStatus = isClaudeAgentsTitle
+    ? ('idle' as const)
     : (classifyTitleActivity(title) ?? (isCursorAgentTitle(title) ? 'idle' : null))
-  const label = isClaudeAgentsTitle ? 'Claude Code' : resolveTitleActivityLabel(title)
+  const titleLabel = isClaudeAgentsTitle ? 'Claude Code' : resolveTitleActivityLabel(title)
+  const launchFallbackType =
+    (!titleStatus || !titleLabel) && args.tab.launchAgent ? args.tab.launchAgent : null
+  const status = titleStatus ?? (launchFallbackType ? 'idle' : null)
+  const label = titleLabel ?? (launchFallbackType ? formatAgentTypeLabel(launchFallbackType) : null)
   if (!status || !label) {
     return null
   }
@@ -161,9 +169,11 @@ function buildTitleDerivedAgentRow(args: {
   }
   const paneKey = makePaneKey(args.tab.id, args.leafId)
   const orchestration = args.runtimeAgentOrchestrationByPaneKey?.[paneKey]
-  const titleAgentType = isClaudeAgentsTitle
-    ? 'claude'
-    : resolveTitleDerivedAgentType(title, label, args.ownerAgentType)
+  const titleAgentType = launchFallbackType
+    ? launchFallbackType
+    : isClaudeAgentsTitle
+      ? 'claude'
+      : resolveTitleDerivedAgentType(title, label, args.ownerAgentType)
   // Why: a status frame proves activity, not identity, so the resolver drops it.
   // Hook-less agents over SSH (Codex, #8711; OpenCode's '. '/'* ' frames, #8940)
   // surface only decorated task titles; fall back to the pane's known owner instead

@@ -17,7 +17,7 @@ const agents = [
   entry('qwen-code', 'Qwen Code', 'qwen-code'),
   entry('crush', 'Charm', 'crush'),
   entry('antigravity', 'Antigravity', 'agy'),
-  entry('cursor', 'Cursor', 'cursor-agent')
+  entry('cursor', 'Cursor', 'agent')
 ]
 
 afterEach(() => {
@@ -47,7 +47,7 @@ describe('agent picker search', () => {
 
   it('matches command aliases that do not appear in the display label', () => {
     expect(searchAgentPickerEntries(agents, 'agy')[0]?.id).toBe('antigravity')
-    expect(searchAgentPickerEntries(agents, 'cursor-agent')[0]?.id).toBe('cursor')
+    expect(searchAgentPickerEntries(agents, 'agent')[0]?.id).toBe('cursor')
   })
 
   it('normalizes accepted pasted whitespace without regex replacement', () => {

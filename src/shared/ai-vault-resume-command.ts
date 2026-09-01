@@ -179,7 +179,8 @@ export function realHomeCodexResumeEnvDeletion(
 
 function defaultAiVaultResumeCommandBase(agent: AiVaultAgent): string {
   if (agent === 'cursor') {
-    return 'cursor-agent'
+    // Why: Cursor's CLI is `agent` (legacy `cursor-agent` still works as an alias).
+    return 'agent'
   }
   if (agent === 'hermes') {
     return 'hermes'

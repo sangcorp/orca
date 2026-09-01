@@ -137,7 +137,7 @@ describe('planCommitMessageGeneration', () => {
     expect(result).toEqual({
       ok: true,
       plan: {
-        binary: 'cursor-agent',
+        binary: 'agent',
         args: [
           '--print',
           '--mode',

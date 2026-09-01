@@ -461,9 +461,11 @@ describe('scanAiVaultSessions', () => {
       ])
     )
 
-    await mkdir(join(roots.cursorProjectsDir, 'project', 'agent-transcripts'), { recursive: true })
+    await mkdir(join(roots.cursorProjectsDir, 'tmp-cursor', 'agent-transcripts'), {
+      recursive: true
+    })
     await writeFile(
-      join(roots.cursorProjectsDir, 'project', 'agent-transcripts', 'cursor-session.jsonl'),
+      join(roots.cursorProjectsDir, 'tmp-cursor', 'agent-transcripts', 'cursor-session.jsonl'),
       jsonLines([
         {
           role: 'user',
@@ -471,6 +473,11 @@ describe('scanAiVaultSessions', () => {
         },
         { role: 'assistant', message: { content: [{ type: 'text', text: 'Done' }] } }
       ])
+    )
+    await mkdir(join(roots.cursorChatsDir, 'deadbeef', 'cursor-session'), { recursive: true })
+    await writeFile(
+      join(roots.cursorChatsDir, 'deadbeef', 'cursor-session', 'meta.json'),
+      JSON.stringify({ cwd: '/tmp/cursor' })
     )
 
     await mkdir(join(roots.opencodeStorageDir, 'session', 'project'), { recursive: true })
@@ -717,7 +724,8 @@ describe('scanAiVaultSessions', () => {
     expect(commandByAgent.get('copilot')).toBe(
       "cd '/tmp/copilot' && copilot --resume='copilot-session'"
     )
-    expect(commandByAgent.get('cursor')).toBe("cursor-agent --resume 'cursor-session'")
+    expect(commandByAgent.get('cursor')).toBe("agent --resume 'cursor-session'")
+    expect(result.sessions.find((session) => session.agent === 'cursor')?.cwd).toBe('/tmp/cursor')
     expect(commandByAgent.get('opencode')).toBe(
       "cd '/tmp/opencode' && opencode --session 'opencode-session'"
     )

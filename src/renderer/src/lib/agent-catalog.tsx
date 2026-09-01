@@ -269,7 +269,7 @@ export const getAgentCatalog = createLocalizedCatalog((): AgentCatalogEntry[] =>
   {
     id: 'cursor',
     label: translate('auto.lib.agent.catalog.667c104cff', 'Cursor'),
-    cmd: 'cursor-agent',
+    cmd: 'agent',
     faviconDomain: 'cursor.com',
     homepageUrl: 'https://cursor.com/cli'
   },

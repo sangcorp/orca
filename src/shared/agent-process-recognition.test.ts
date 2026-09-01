@@ -313,6 +313,8 @@ describe('agent process recognition', () => {
 
   it('recognizes the versioned Cursor Node wrapper without accepting generic agent processes', () => {
     const cursorEntrypoint = String.raw`C:\Users\dev\AppData\Local\cursor-agent\versions\2026.07.09-a3815c0\index.js`
+    const linuxCursorEntrypoint =
+      '/home/sang/.local/share/cursor-agent/versions/2026.08.25-3e8eec8/index.js'
 
     expect(recognizeAgentProcessFromCommandLine(`node.exe ${cursorEntrypoint}`)).toEqual({
       agent: 'cursor',
@@ -321,12 +323,24 @@ describe('agent process recognition', () => {
     expect(
       recognizeAgentProcessFromCommandLine(`node.exe ${cursorEntrypoint} worker-server`)
     ).toEqual({ agent: 'cursor', processName: 'cursor-agent' })
+    // Why: Cursor renamed the public CLI to `agent`; argv0 is generic but the
+    // versioned index.js on the command line is still an authoritative identity.
+    expect(
+      recognizeAgentProcessFromCommandLine(
+        `/home/sang/.local/bin/agent --use-system-ca ${linuxCursorEntrypoint}`
+      )
+    ).toEqual({ agent: 'cursor', processName: 'cursor-agent' })
     expect(
       recognizeAgentProcessFromCommandLine(String.raw`node.exe C:\repo\cursor-agent\index.js`)
     ).toBeNull()
     expect(
       recognizeAgentProcessFromCommandLine(String.raw`C:\Users\dev\.grok\bin\agent.exe`)
     ).toBeNull()
+    expect(recognizeAgentProcessFromCommandLine('/home/sang/.local/bin/agent')).toBeNull()
+    expect(recognizeAgentProcess('agent')).toBeNull()
+    expect(isExpectedAgentProcess('agent', 'agent')).toBe(true)
+    expect(isExpectedAgentProcess('cursor-agent', 'agent')).toBe(true)
+    expect(isExpectedAgentProcess('agent', 'cursor-agent')).toBe(true)
   })
 
   it('does not classify prompt text as a wrapped agent command', () => {

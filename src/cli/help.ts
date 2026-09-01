@@ -249,7 +249,7 @@ Common Commands:
   orca terminal send [--terminal <handle>] [--text <text>] [--enter] [--interrupt] [--json]
   orca terminal wait [--terminal <handle>] --for exit|tui-idle [--timeout-ms <ms>] [--json]
   orca terminal stop --worktree <selector> [--json]
-  orca terminal create [--worktree <selector>] [--title <name>] [--command <text>] [--focus] [--json]
+  orca terminal create [--worktree <selector>] [--title <name>] [--command <text>] [--agent <id>] [--focus] [--json]
   orca terminal split [--terminal <handle>] [--direction horizontal|vertical] [--json]
   orca terminal switch [--terminal <handle>] [--json]
   orca terminal close [--terminal <handle>] [--tab] [--json]
@@ -521,6 +521,9 @@ function formatCommandFlagHelp(flag: string, commandPath: string[]): string {
   // which is the wrong meaning here — this selects the account provider.
   if (command === 'account add' && flag === 'agent') {
     return '--agent <id>           Account provider: claude or codex (default claude)'
+  }
+  if (command === 'terminal create' && flag === 'agent') {
+    return '--agent <id>           Stamp launchAgent on the tab (Agents list identity)'
   }
   if (flag === 'key' && command === 'computer hotkey') {
     return '--key <key-combo>      Modifier chord with one key, e.g. CmdOrCtrl+A'

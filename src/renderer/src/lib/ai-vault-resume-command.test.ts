@@ -168,7 +168,7 @@ describe('ai vault resume command runtime', () => {
           codexHome: null
         }
       })
-    ).toBe("cursor-agent --resume 'session one'")
+    ).toBe("agent --resume 'session one'")
   })
 
   it('queues a PowerShell-valid local OMP resume by absolute transcript path', () => {

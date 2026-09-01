@@ -13922,8 +13922,8 @@ describe('OrcaRuntimeService', () => {
     )
   })
 
-  // Why: `cursor` on PATH is the Cursor desktop launcher; only `cursor-agent` is
-  // the CLI Orca can host (issue #11926).
+  // Why: `cursor` on PATH is the Cursor desktop launcher; only `agent`
+  // (legacy `cursor-agent`) is the CLI Orca can host (issue #11926).
   it('launches the configured agent CLI for a startupAgent id, not the raw id', async () => {
     const spawn = vi.fn().mockResolvedValue({ id: 'pty-bg' })
     const runtimeStore = {
@@ -13952,7 +13952,7 @@ describe('OrcaRuntimeService', () => {
     const spawnCall = spawn.mock.calls[0]?.[0] as
       | { command?: string; launchAgent?: string; env?: Record<string, string> }
       | undefined
-    expect(spawnCall?.command).toBe("cursor-agent '--force'")
+    expect(spawnCall?.command).toBe("agent '--force'")
     expect(spawnCall?.launchAgent).toBe('cursor')
     expect(spawnCall?.env).toMatchObject({ CURSOR_PROFILE: 'captured' })
     expect(markCursorWorkspaceTrustedMock).toHaveBeenCalledWith(TEST_WORKTREE_PATH)
@@ -13987,7 +13987,7 @@ describe('OrcaRuntimeService', () => {
     const spawnCall = spawn.mock.calls[0]?.[0] as { command?: string } | undefined
     // Why: assert the cmd.exe double quoting too — a platform-insensitive prefix
     // match would pass on any OS and prove nothing about the reported platform.
-    expect(spawnCall?.command).toBe('cursor-agent "--force"')
+    expect(spawnCall?.command).toBe('agent "--force"')
   })
 
   // Why: claude-agent-teams is the only agent whose launcher name varies by
@@ -14101,7 +14101,7 @@ describe('OrcaRuntimeService', () => {
     const spawnCall = spawn.mock.calls[0]?.[0] as
       | { command?: string; launchAgent?: string }
       | undefined
-    expect(spawnCall?.command).toBe("cursor-agent '--force'")
+    expect(spawnCall?.command).toBe("agent '--force'")
     expect(spawnCall?.launchAgent).toBe('cursor')
   })
 

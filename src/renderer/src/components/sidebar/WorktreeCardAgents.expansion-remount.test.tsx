@@ -121,18 +121,18 @@ describe('WorktreeCardAgents inline-list expansion durability', () => {
     clearWorktreeAgentExpansionStateForTests()
   })
 
-  it('keeps the compact agent summary expanded across a card remount', async () => {
+  it('keeps the compact agent summary collapsed across a card remount', async () => {
     const host = await mountAgents('wt-remount')
-    expect(summaryButton(host).getAttribute('aria-expanded')).toBe('false')
+    expect(summaryButton(host).getAttribute('aria-expanded')).toBe('true')
 
     await act(async () => {
       summaryButton(host).dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
-    expect(summaryButton(host).getAttribute('aria-expanded')).toBe('true')
+    expect(summaryButton(host).getAttribute('aria-expanded')).toBe('false')
 
     // Simulate the WorktreeCard remount that a virtualizer recycle or a sibling
     // child-worktrees toggle triggers: fully unmount, then mount a fresh tree
-    // for the same worktree. Before the fix this reset the summary to collapsed.
+    // for the same worktree. Collapsed (non-default) state must survive.
     await act(async () => {
       const first = mountedRoots.shift()!
       first.root.unmount()
@@ -140,7 +140,7 @@ describe('WorktreeCardAgents inline-list expansion durability', () => {
     })
     const remounted = await mountAgents('wt-remount')
 
-    expect(summaryButton(remounted).getAttribute('aria-expanded')).toBe('true')
+    expect(summaryButton(remounted).getAttribute('aria-expanded')).toBe('false')
   })
 
   it('does not leak expansion between different worktrees', async () => {
@@ -148,10 +148,10 @@ describe('WorktreeCardAgents inline-list expansion durability', () => {
     await act(async () => {
       summaryButton(first).dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
-    expect(summaryButton(first).getAttribute('aria-expanded')).toBe('true')
+    expect(summaryButton(first).getAttribute('aria-expanded')).toBe('false')
 
     const second = await mountAgents('wt-b')
-    expect(summaryButton(second).getAttribute('aria-expanded')).toBe('false')
+    expect(summaryButton(second).getAttribute('aria-expanded')).toBe('true')
   })
 })
 
@@ -208,14 +208,14 @@ describe('worktree-card-agents-expansion-state module cache', () => {
   it('drops default (empty) state and bounds the cache with LRU eviction', () => {
     seedWorktreeAgentExpansionStateForTests('wt-default', {
       collapsedLineageParents: new Set(),
-      compactRootListExpanded: false
+      compactRootListExpanded: true
     })
     expect(getWorktreeAgentExpansionCountForTests()).toBe(0)
 
     for (let i = 0; i < MAX_PERSISTED_WORKTREE_AGENT_EXPANSIONS + 25; i++) {
       seedWorktreeAgentExpansionStateForTests(`wt-${i}`, {
         collapsedLineageParents: new Set(),
-        compactRootListExpanded: true
+        compactRootListExpanded: false
       })
     }
     expect(getWorktreeAgentExpansionCountForTests()).toBe(MAX_PERSISTED_WORKTREE_AGENT_EXPANSIONS)
