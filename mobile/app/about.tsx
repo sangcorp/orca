@@ -52,7 +52,7 @@ export default function AboutScreen() {
       <View style={styles.brand}>
         <OrcaLogo size={28} />
         <Text style={styles.brandName}>Orca</Text>
-        <Text style={styles.brandSub}>Open-source agent IDE for 100x builders</Text>
+        <Text style={styles.brandSub}>Agent IDE for 100x builders</Text>
       </View>
 
       <View style={styles.section}>
@@ -62,14 +62,6 @@ export default function AboutScreen() {
         >
           <Globe size={16} color={colors.textSecondary} />
           <Text style={styles.rowValue}>onOrca.dev</Text>
-        </Pressable>
-        <View style={styles.separator} />
-        <Pressable
-          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-          onPress={() => void Linking.openURL('https://github.com/stablyai/orca')}
-        >
-          <GithubIcon />
-          <Text style={styles.rowValue}>stablyai/orca</Text>
         </Pressable>
         <View style={styles.separator} />
         <Pressable
