@@ -688,10 +688,12 @@ function DefaultAgentPill({
   )
 }
 
-// Why: scope the Installed/Not detected lists to sangai's own provider set —
+// Why: scope the Installed/Not detected lists to this host's own provider set —
 // Orca's broader catalog (Claude Agent Teams, exotic third-party agents) stays
-// registered for other surfaces, just not shown here.
-const SANGAI_PROVIDER_AGENTS: readonly TuiAgent[] = [
+// registered for other surfaces, just not shown here. Covers both workspaces on
+// the host; each profile narrows this to its own set via disabledTuiAgents, so
+// the two instances show different lists from one build.
+const HOST_PROVIDER_AGENTS: readonly TuiAgent[] = [
   'claude',
   'claude1',
   'claude2',
@@ -701,7 +703,11 @@ const SANGAI_PROVIDER_AGENTS: readonly TuiAgent[] = [
   'agy1',
   'agy2',
   'opencode',
-  'hermes'
+  'hermes',
+  'rclaude1',
+  'rclaude2',
+  'rcodex',
+  'ragy1'
 ]
 
 export function AgentsPane({
@@ -818,14 +824,26 @@ export function AgentsPane({
     detectedIds === null
       ? []
       : getAgentCatalog().filter(
-          (agent) => SANGAI_PROVIDER_AGENTS.includes(agent.id) && detectedIds.has(agent.id)
+          (agent) => HOST_PROVIDER_AGENTS.includes(agent.id) && detectedIds.has(agent.id)
         )
   const enabledDetectedAgents = detectedAgents.filter((agent) =>
     isTuiAgentEnabled(agent.id, disabledAgents)
   )
-  const undetectedAgents = getAgentCatalog().filter(
-    (a) => SANGAI_PROVIDER_AGENTS.includes(a.id) && detectedIds !== null && !detectedIds.has(a.id)
-  )
+  // Why empty on a paired client: the host filters detection to the agents its own
+  // profile enables, so anything missing here is either absent from the host or
+  // deliberately off for this workspace -- and a browser cannot install a CLI on the
+  // host either way. Advertising the rest would show a second workspace's providers.
+  const isPairedClient =
+    (globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ === true
+  const undetectedAgents = isPairedClient
+    ? []
+    : getAgentCatalog().filter(
+        (a) =>
+          HOST_PROVIDER_AGENTS.includes(a.id) &&
+          isTuiAgentEnabled(a.id, disabledAgents) &&
+          detectedIds !== null &&
+          !detectedIds.has(a.id)
+      )
 
   // Why only `=== null`: the pill's own handler writes null, so lighting it up
   // for a *stored* agent that merely is not detected right now made the

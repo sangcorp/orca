@@ -6,3 +6,4 @@
 // content and every extra sangai import line eats into it.
 export { SANGAI_CLAUDE_ACCOUNT_CONFIGS } from './sangai-claude-account-agents'
 export { SANGAI_ANTIGRAVITY_INSTANCE_CONFIGS } from './sangai-antigravity-instance-agents'
+export { ROSTER_AGENT_CONFIGS } from './roster-agent-configs'

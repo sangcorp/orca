@@ -14,6 +14,10 @@ export type TuiAgent =
   | 'omp' // OMP (omp.sh)
   | 'gemini' // Gemini CLI
   | 'antigravity' // Google Antigravity CLI
+  | 'rclaude1' // Claude Code, roster workspace instance 1 (roster/bin/roster-claude-instance)
+  | 'rclaude2' // Claude Code, roster workspace instance 2 (roster/bin/roster-claude-instance)
+  | 'rcodex' // Codex, roster workspace (roster/bin/roster-codex)
+  | 'ragy1' // Antigravity, roster workspace (roster/bin/roster-agy-instance)
   | 'agy1' // Antigravity, sangai instance 1 (bin/agy-instance)
   | 'agy2' // Antigravity, sangai instance 2 (bin/agy-instance)
   | 'aider' // Aider

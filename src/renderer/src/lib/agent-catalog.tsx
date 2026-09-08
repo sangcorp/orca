@@ -15,6 +15,7 @@ import {
 import { translate } from '@/i18n/i18n'
 import { createLocalizedCatalog } from '@/i18n/localized-catalog'
 import { AGENT_FAVICON_ASSETS } from './agent-favicon-assets'
+import { ROSTER_AGENT_CATALOG } from './roster-agent-catalog'
 
 export type AgentCatalogEntry = {
   id: TuiAgent
@@ -167,6 +168,7 @@ export const getAgentCatalog = createLocalizedCatalog((): AgentCatalogEntry[] =>
     faviconDomain: 'antigravity.google',
     homepageUrl: 'https://antigravity.google/docs/cli-overview'
   },
+  ...ROSTER_AGENT_CATALOG,
   {
     id: 'agy2',
     label: 'agy2',
@@ -360,11 +362,13 @@ export function AgentIcon({
     agent === 'claude' ||
     agent === 'claude1' ||
     agent === 'claude2' ||
+    agent === 'rclaude1' ||
+    agent === 'rclaude2' ||
     agent === 'claude-agent-teams'
   ) {
     return <ClaudeIcon size={size} />
   }
-  if (agent === 'codex') {
+  if (agent === 'codex' || agent === 'rcodex') {
     return <OpenAIIcon size={size} />
   }
   if (agent === 'droid') {
