@@ -1,1 +1,0 @@
-../../.claude/skills/linear-tickets/SKILL.md
