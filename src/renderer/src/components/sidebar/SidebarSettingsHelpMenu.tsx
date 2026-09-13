@@ -14,7 +14,7 @@ import {
   Settings
 } from 'lucide-react'
 import { toast } from 'sonner'
-import logo from '../../../../../resources/logo.svg'
+import logo from '../../../../../resources/sangai-logo.jpg'
 import { useAppStore } from '@/store'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -242,7 +242,7 @@ export function SidebarSettingsHelpMenu(): React.JSX.Element {
                   src={logo}
                   alt=""
                   aria-hidden="true"
-                  className="size-3.5 object-contain invert opacity-55 dark:invert-0"
+                  className="size-3.5 object-contain rounded-sm opacity-80"
                 />
                 {translate(
                   'auto.components.sidebar.SidebarSettingsHelpMenu.f8a2c91d4e',

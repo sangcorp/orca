@@ -1,5 +1,4 @@
 import { ArrowLeft, ArrowRight, MoreHorizontal, PanelLeft } from 'lucide-react'
-import logo from '../../../../resources/logo.svg'
 import sangaiLogo from '../../../../resources/sangai-logo.jpg'
 import { translate } from '@/i18n/i18n'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -48,7 +47,12 @@ export function TitlebarLeftControls({ layout }: { layout: AppChromeLayout }): R
         ) : hasCustomTitleBar ? (
           /* Why: Windows/Linux remove the native title bar, so render the logo plus a ··· button that pops the application menu (as Alt does). */
           <>
-            <img src={logo} alt="" aria-hidden className="titlebar-logo" />
+            <img
+              src={sangaiLogo}
+              alt=""
+              aria-hidden
+              className="titlebar-logo object-contain rounded-sm"
+            />
             <Tooltip>
               <TooltipTrigger asChild>
                 <button

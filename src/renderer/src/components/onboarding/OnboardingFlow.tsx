@@ -13,7 +13,7 @@ import { useOnboardingFlow } from './use-onboarding-flow'
 import { OnboardingSkipConfirmationDialog } from './OnboardingSkipConfirmationDialog'
 import { OnboardingFooter } from './OnboardingFooter'
 import { shouldRequestOnboardingSkipConfirmation } from './onboarding-dismiss-target'
-import logo from '../../../../../resources/logo.svg'
+import logo from '../../../../../resources/sangai-logo.jpg'
 import { translate } from '@/i18n/i18n'
 
 const stepCopy = {
@@ -207,10 +207,10 @@ export default function OnboardingFlow({
                 src={logo}
                 alt=""
                 aria-hidden="true"
-                className="h-7 w-auto shrink-0 invert dark:invert-0"
+                className="h-7 w-auto shrink-0 object-contain rounded-sm"
               />
               <span>
-                {translate('auto.components.onboarding.OnboardingFlow.a249f81538', 'Orca')}
+                {translate('auto.components.onboarding.OnboardingFlow.a249f81538', 'SangAI')}
               </span>
             </div>
 
